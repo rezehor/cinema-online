@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, func, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, func, ForeignKey, Date
 from sqlalchemy.orm import relationship
 
 from Cinema.database import Base
@@ -51,3 +51,18 @@ class User(Base):
     activation_token = relationship("ActivationToken", back_populates="user", cascade="all, delete-orphan")
     password_reset_token = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     refresh_token = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserProfile(Base):
+    __tablename__ = "userprofile"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    avatar = Column(String, nullable=True)
+    gender = Column(Enum(GenderEnum), nullable=True)
+    date_of_birth = Column(Date, nullable=True)
+    info = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="profile")
