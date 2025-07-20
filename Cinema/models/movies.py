@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, ForeignKey, Integer, String
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from Cinema.database import Base
@@ -95,4 +95,45 @@ class Certification(Base):
     movies = relationship(
         "Movie",
         back_populates="certification",
+    )
+
+
+class Movie(Base):
+    __tablename__ = "movies"
+
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
+    year = Column(Integer, nullable=False)
+    time = Column(Integer, nullable=False)
+    imdb = Column(Float, nullable=False)
+    votes = Column(Integer, nullable=False)
+    meta_score = Column(Float, nullable=True)
+    gross = Column(Float, nullable=True)
+    description = Column(Text, nullable=False)
+    price = Column(DECIMAL(10, 2), nullable=False)
+    certification_id = Column(Integer, ForeignKey("certification.id"), nullable=False)
+
+    certification = relationship(
+        "Certification",
+        back_populates="movies",
+    )
+    genres = relationship(
+        "Genre",
+        secondary=MovieGenres,
+        back_populates="movies",
+    )
+    stars = relationship(
+        "Star",
+        secondary=MovieStars,
+        back_populates="movies",
+    )
+    directors = relationship(
+        "Director",
+        secondary=MovieDirectors,
+        back_populates="movies",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("name", "year", "time", name="unique_movie_constraint")
     )
