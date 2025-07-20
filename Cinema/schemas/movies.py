@@ -64,3 +64,17 @@ class MovieDetailSchema(MovieBaseSchema):
     directors: List[DirectorSchema]
 
     model_config = {"from_attributes": True}
+
+
+class MovieListItemSchema(BaseModel):
+    id: int
+    name: str
+    year: int
+    time: int
+    imdb: float
+    votes: int
+    meta_score: float
+    description: str
+
+    model_config = {"from_attributes": True}
+
