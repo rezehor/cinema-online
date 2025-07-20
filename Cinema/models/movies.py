@@ -72,3 +72,16 @@ class Star(Base):
         secondary=MovieStars,
         back_populates="stars",
     )
+
+
+class Director(Base):
+    __tablename__ = "directors"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False, unique=True)
+
+    movies = relationship(
+        "Movie",
+        secondary=MovieDirectors,
+        back_populates="directors",
+    )
