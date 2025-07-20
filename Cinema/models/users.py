@@ -60,7 +60,7 @@ class User(Base):
         nullable=False
     )
 
-    group = relationship("UserGroup", back_populates="user")
+    group = relationship("UserGroup", back_populates="users")
     profile = relationship(
         "UserProfile",
         back_populates="user",

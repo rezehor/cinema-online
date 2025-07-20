@@ -1,13 +1,11 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+from Cinema.routes import movies
 
+app = FastAPI(
+    title="Online Cinema",
+)
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+api_version_prefix = "/api/v1"
 
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+app.include_router(movies.router, prefix=f"{api_version_prefix}/movies", tags=["movies"])
