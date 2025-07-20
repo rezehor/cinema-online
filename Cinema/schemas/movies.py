@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -11,7 +12,7 @@ class GenreSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class StarsSchema(BaseModel):
+class StarSchema(BaseModel):
     id: int
     name: str
 
@@ -32,7 +33,7 @@ class CertificationSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class MoviesBaseSchema(BaseModel):
+class MovieBaseSchema(BaseModel):
     uuid: str
     name: str = Field(max_length=255)
     year: int = Field(gt=1880)
@@ -53,3 +54,13 @@ class MoviesBaseSchema(BaseModel):
         if value > current_year + 1:
             raise ValueError(f"The year in 'year' cannot be greater than {current_year + 1}.")
         return value
+
+
+class MovieDetailSchema(MovieBaseSchema):
+    id: int
+    certification: CertificationSchema
+    genres: List[GenreSchema]
+    stars: List[StarSchema]
+    directors: List[DirectorSchema]
+
+    model_config = {"from_attributes": True}
