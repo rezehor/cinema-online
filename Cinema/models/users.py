@@ -13,7 +13,7 @@ from sqlalchemy import (
     Date
 )
 from sqlalchemy.orm import relationship
-from Cinema.database import Base
+from .base import Base
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -33,7 +33,7 @@ class UserGroup(Base):
     id = Column(Integer, primary_key=True)
     name = Column(Enum(UserGroupEnum), nullable=False, unique=True)
 
-    users: list["User"] = relationship("User", back_populates="group")
+    users = relationship("User", back_populates="group")
 
 
 class User(Base):

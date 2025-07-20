@@ -1,7 +1,7 @@
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from Cinema.database import Base
+from .base import Base
 
 MovieGenres = Table(
     "movie_genres",
@@ -135,5 +135,5 @@ class Movie(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("name", "year", "time", name="unique_movie_constraint")
+        UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),
     )
