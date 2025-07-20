@@ -1,6 +1,17 @@
 import enum
-
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, func, ForeignKey, Date
+import secrets
+from datetime import timezone, datetime, timedelta
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Enum,
+    Boolean,
+    DateTime,
+    func,
+    ForeignKey,
+    Date
+)
 from sqlalchemy.orm import relationship
 
 from Cinema.database import Base
@@ -44,20 +55,45 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now()
     )
-    group_id = Column(Integer, ForeignKey("usergroup.id", ondelete="CASCADE"), nullable=False)
+    group_id = Column(
+        Integer,
+        ForeignKey("usergroup.id", ondelete="CASCADE"),
+        nullable=False
+    )
 
     group = relationship("UserGroup", back_populates="user")
-    profile = relationship("UserProfile", back_populates="user", cascade="all, delete-orphan")
-    activation_token = relationship("ActivationToken", back_populates="user", cascade="all, delete-orphan")
-    password_reset_token = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
-    refresh_token = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    profile = relationship(
+        "UserProfile",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    activation_token = relationship(
+        "ActivationToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    password_reset_token = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    refresh_token = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
 
 class UserProfile(Base):
     __tablename__ = "userprofile"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True
+    )
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     avatar = Column(String, nullable=True)
@@ -66,3 +102,25 @@ class UserProfile(Base):
     info = Column(String, nullable=True)
 
     user = relationship("User", back_populates="profile")
+
+
+class TokenBaseModel(Base):
+    __abstract__ = True
+
+    id = Column(Integer, primary_key=True)
+    token = Column(
+        String,
+        nullable=False,
+        unique=True,
+        default=secrets.token_urlsafe(32)
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=lambda: datetime.now(timezone.utc) + timedelta(hours=24)
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False
+    )
