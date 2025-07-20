@@ -138,6 +138,7 @@ class PasswordResetToken(TokenBaseModel):
     user = relationship("User", back_populates="password_reset_token")
 
 
+class RefreshToken(TokenBaseModel):
+    __tablename__ = "refresh_token"
 
-
-
+    user = relationship("User", back_populates="refresh_token")
