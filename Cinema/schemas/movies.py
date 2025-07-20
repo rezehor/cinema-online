@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -77,4 +77,15 @@ class MovieListItemSchema(BaseModel):
     description: str
 
     model_config = {"from_attributes": True}
+
+
+class MovieListResponseSchema(BaseModel):
+    movies: List[MovieListItemSchema]
+    prev_page: Optional[str]
+    next_page: Optional[str]
+    total_pages: Optional[int]
+    total_items: Optional[int]
+
+    model_config = {"from_attributes": True}
+
 
