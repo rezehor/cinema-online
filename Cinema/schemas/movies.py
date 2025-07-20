@@ -9,3 +9,8 @@ class GenreSchema(BaseModel):
 class StarsSchema(BaseModel):
     id: int
     name: str
+
+
+class DirectorSchema(BaseModel):
+    id: int
+    name: str
