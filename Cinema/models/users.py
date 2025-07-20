@@ -13,7 +13,6 @@ from sqlalchemy import (
     Date
 )
 from sqlalchemy.orm import relationship
-
 from Cinema.database import Base
 
 
@@ -131,5 +130,14 @@ class ActivationToken(TokenBaseModel):
     __tablename__ = "activation_token"
 
     user = relationship("User", back_populates="activation_token")
+
+
+class PasswordResetToken(TokenBaseModel):
+    __tablename__ = "password_reset_token"
+
+    user = relationship("User", back_populates="password_reset_token")
+
+
+
 
 
