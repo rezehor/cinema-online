@@ -3,17 +3,34 @@ from sqlalchemy.orm import relationship
 
 from Cinema.database import Base
 
-MoviesGenres = Table(
-    "movies_genres",
+MovieGenres = Table(
+    "movie_genres",
     Base.metadata,
     Column(
         "movie_id",
         ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False),
+        primary_key=True, nullable=False
+    ),
     Column(
         "genre_id",
         ForeignKey("genres.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False),
+        primary_key=True, nullable=False
+    ),
+)
+
+MovieStars = Table(
+    "movie_stars",
+    Base.metadata,
+    Column(
+        "movie_id",
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        primary_key=True, nullable=False
+    ),
+    Column(
+        "star_id",
+        ForeignKey("stars.id", ondelete="CASCADE"),
+        primary_key=True, nullable=False
+    ),
 )
 
 
@@ -25,6 +42,6 @@ class Genre(Base):
 
     movies = relationship(
         "Movie",
-        secondary=MoviesGenres,
+        secondary=MovieGenres,
         back_populates="genres",
     )
