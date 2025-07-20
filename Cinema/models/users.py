@@ -122,5 +122,14 @@ class TokenBaseModel(Base):
     user_id = Column(
         Integer,
         ForeignKey("user.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
+        unique=True
     )
+
+
+class ActivationToken(TokenBaseModel):
+    __tablename__ = "activation_token"
+
+    user = relationship("User", back_populates="activation_token")
+
+
