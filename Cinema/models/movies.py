@@ -85,3 +85,14 @@ class Director(Base):
         secondary=MovieDirectors,
         back_populates="directors",
     )
+
+
+class Certification(Base):
+    __tablename__ = "certification"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False, unique=True)
+    movies = relationship(
+        "Movie",
+        back_populates="certification",
+    )
