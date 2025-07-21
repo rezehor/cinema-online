@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from Cinema.database import get_db
 from Cinema.models import Movie
-from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema
+from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
 
 router = APIRouter()
 
@@ -44,4 +45,30 @@ async def get_movies(
         total_items=total_items,
     )
     return response
+
+
+@router.get("/{movie_id}", response_model=MovieDetailSchema)
+async def get_movie_by_id(
+        movie_id: int,
+        db: AsyncSession = Depends(get_db)
+) -> MovieDetailSchema:
+    stmt = (select(Movie)
+            .options(
+        joinedload(Movie.genres),
+        joinedload(Movie.stars),
+        joinedload(Movie.directors),
+        joinedload(Movie.certification))
+            .where(Movie.id == movie_id)
+            )
+
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie with the given ID was not found."
+        )
+
+    return MovieDetailSchema.model_validate(movie)
 
