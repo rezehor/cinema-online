@@ -21,3 +21,12 @@ class BaseEmailPasswordSchema(BaseModel):
 
 class UserRegistrationRequestSchema(BaseEmailPasswordSchema):
     pass
+
+
+class UserRegistrationResponseSchema(BaseModel):
+    id: int
+    email: EmailStr
+
+    model_config = {
+        "from_attributes": True
+    }
