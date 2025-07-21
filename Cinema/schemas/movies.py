@@ -2,6 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
+import uuid
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -34,7 +35,6 @@ class CertificationSchema(BaseModel):
 
 
 class MovieBaseSchema(BaseModel):
-    uuid: str
     name: str = Field(max_length=255)
     year: int = Field(gt=1880)
     time: int = Field(gt=0, lt=300)
@@ -58,6 +58,7 @@ class MovieBaseSchema(BaseModel):
 
 class MovieDetailSchema(MovieBaseSchema):
     id: int
+    uuid = str
     certification: CertificationSchema
     genres: List[GenreSchema]
     stars: List[StarSchema]
@@ -88,4 +89,12 @@ class MovieListResponseSchema(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
+class MovieCreateSchema(MovieBaseSchema):
+    certification: str
+    genres: List[str]
+    stars: List[str]
+    directors: List[str]
+
+    model_config = {"from_attributes": True}
 

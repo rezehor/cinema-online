@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint
 from sqlalchemy.orm import relationship
 
@@ -102,7 +103,7 @@ class Movie(Base):
     __tablename__ = "movies"
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String, nullable=False, unique=True)
+    uuid = Column(String, nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
     year = Column(Integer, nullable=False)
     time = Column(Integer, nullable=False)
