@@ -98,3 +98,26 @@ class MovieCreateSchema(MovieBaseSchema):
 
     model_config = {"from_attributes": True}
 
+    @field_validator("genres", "stars", "directors", mode="before")
+    @classmethod
+    def normalize_list_fields(cls, value: List[str]) -> List[str]:
+        return [item.title() for item in value]
+
+
+class MovieUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    year: Optional[int] = None
+    time: Optional[int] = None
+    imdb: Optional[float] = None
+    votes: Optional[int] = None
+    meta_score: Optional[float] = None
+    gross: Optional[float] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
+    certification: Optional[str] = None
+    genres: Optional[List[str]] = None
+    stars: Optional[List[str]] = None
+    directors: Optional[List[str]] = None
+
+    model_config = {"from_attributes": True}
+
