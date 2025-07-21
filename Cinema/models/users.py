@@ -82,6 +82,12 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    @classmethod
+    def create(cls, email: str, raw_password: str, group_id: int) -> "User":
+        user = cls(email=email, group_id=group_id)
+        user.password = raw_password
+        return user
+
 
 class UserProfile(Base):
     __tablename__ = "userprofile"
