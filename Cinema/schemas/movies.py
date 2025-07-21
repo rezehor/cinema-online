@@ -114,10 +114,6 @@ class MovieUpdateSchema(BaseModel):
     gross: Optional[float] = None
     description: Optional[str] = None
     price: Optional[Decimal] = None
-    certification: Optional[str] = None
-    genres: Optional[List[str]] = None
-    stars: Optional[List[str]] = None
-    directors: Optional[List[str]] = None
 
     model_config = {"from_attributes": True}
 
