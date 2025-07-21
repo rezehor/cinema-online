@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Query, Depends, HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-
 from Cinema.database import get_db
-from Cinema.models import Movie
-from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
+from Cinema.models import Movie, Certification, Genre, Star, Director
+from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema
 
 router = APIRouter()
 
@@ -71,4 +71,94 @@ async def get_movie_by_id(
         )
 
     return MovieDetailSchema.model_validate(movie)
+
+
+@router.post(
+    "/",
+    response_model=MovieDetailSchema,
+    status_code=status.HTTP_201_CREATED)
+async def create_movie(
+        movie_data: MovieCreateSchema,
+        db: AsyncSession = Depends(get_db)
+) -> MovieDetailSchema:
+    existing_stmt = select(Movie).where(
+        Movie.name == movie_data.name,
+        Movie.year == movie_data.year,
+        Movie.time == movie_data.time,
+    )
+    existing_result = await db.execute(existing_stmt)
+    existing_movie = existing_result.scalars().first()
+    if existing_movie:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Movie with the name {movie_data.name} already exists."
+        )
+
+    try:
+        certification_stmt = (select(Certification)
+                              .where(Certification.name == movie_data.certification))
+        certification_result = await db.execute(certification_stmt)
+        certification = certification_result.scalars().first()
+        if not certification:
+            certification = Certification(name=movie_data.certification)
+            db.add(certification)
+            await db.flush()
+
+        genres = []
+        for genre_name in movie_data.genres:
+            genre_stmt = select(Genre).where(Genre.name == genre_name)
+            genre_result = await db.execute(genre_stmt)
+            genre = genre_result.scalars().first()
+            if not genre:
+                genre = Genre(name=genre_name)
+                db.add(genre)
+                await db.flush()
+            genres.append(genre)
+
+        stars = []
+        for star_name in movie_data.stars:
+            star_stmt = select(Star).where(Star.name == star_name)
+            star_result = await db.execute(star_stmt)
+            star = star_result.scalars().first()
+            if not star:
+                star = Star(name=star_name)
+                db.add(star)
+                await db.flush()
+            stars.append(star)
+
+        directors = []
+        for director_name in movie_data.directors:
+            director_stmt = select(Director).where(Director.name == director_name)
+            director_result = await db.execute(director_stmt)
+            director = director_result.scalars().first()
+            if not director:
+                director = Director(name=director_name)
+                db.add(director)
+                await db.flush()
+            directors.append(director)
+
+        movie = Movie(
+            name=movie_data.name,
+            year=movie_data.year,
+            time=movie_data.time,
+            imdb=movie_data.imdb,
+            votes=movie_data.votes,
+            meta_score=movie_data.meta_score,
+            gross=movie_data.gross,
+            description=movie_data.description,
+            price=movie_data.price,
+            certification=certification,
+            genres=genres,
+            stars=stars,
+            directors=directors
+        )
+        db.add(movie)
+        await db.commit()
+        await db.refresh(movie, ["genres", "stars", "directors"])
+
+        return MovieDetailSchema.model_validate(movie)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid input data.")
 

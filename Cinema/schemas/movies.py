@@ -58,7 +58,7 @@ class MovieBaseSchema(BaseModel):
 
 class MovieDetailSchema(MovieBaseSchema):
     id: int
-    uuid = str
+    uuid: str
     certification: CertificationSchema
     genres: List[GenreSchema]
     stars: List[StarSchema]
