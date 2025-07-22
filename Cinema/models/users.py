@@ -14,6 +14,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from .base import Base
+from ..security.passwords import hash_password
+from ..validators import users
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -90,6 +92,15 @@ class User(Base):
         user = cls(email=email, group_id=group_id)
         user.password = raw_password
         return user
+
+    @property
+    def password(self) -> None:
+        raise AttributeError("Password is write-only. Use the setter to set the password.")
+
+    @password.setter
+    def password(self, raw_password: str) -> None:
+        users.validate_password_strength(raw_password)
+        self.hashed_password = hash_password(raw_password)
 
 
 class UserProfile(Base):
