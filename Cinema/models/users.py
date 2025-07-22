@@ -82,6 +82,9 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    def has_group(self, group_name: UserGroupEnum) -> bool:
+        return self.group.name == group_name
+
     @classmethod
     def create(cls, email: str, raw_password: str, group_id: int) -> "User":
         user = cls(email=email, group_id=group_id)
