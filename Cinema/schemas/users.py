@@ -47,3 +47,7 @@ class PasswordResetRequestSchema(BaseModel):
 
 class PasswordResetCompleteRequestSchema(BaseEmailPasswordSchema):
     token: str
+
+
+class UserLoginRequestSchema(BaseEmailPasswordSchema):
+    pass
