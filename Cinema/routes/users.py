@@ -11,10 +11,27 @@ from starlette import status
 from Cinema.config.dependencies import get_settings, get_jwt_auth_manager
 from Cinema.config.settings import Settings
 from Cinema.database import get_db
-from Cinema.models import User, UserGroup, UserGroupEnum, ActivationToken, PasswordResetToken, RefreshToken
-from Cinema.schemas.users import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
-    UserActivationRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema, \
-    UserLoginResponseSchema, UserLoginRequestSchema
+from Cinema.exceptions.security import BaseSecurityError
+from Cinema.models import (
+    User,
+    UserGroup,
+    UserGroupEnum,
+    ActivationToken,
+    PasswordResetToken,
+    RefreshToken
+)
+from Cinema.schemas.users import (
+    UserRegistrationResponseSchema,
+    UserRegistrationRequestSchema,
+    MessageResponseSchema,
+    UserActivationRequestSchema,
+    PasswordResetRequestSchema,
+    PasswordResetCompleteRequestSchema,
+    UserLoginResponseSchema,
+    UserLoginRequestSchema,
+    TokenRefreshResponseSchema,
+    TokenRefreshRequestSchema
+)
 from Cinema.security.interfaces import JWTAuthManagerInterface
 
 router = APIRouter()
@@ -252,3 +269,45 @@ async def login_user(
         access_token=jwt_access_token,
         refresh_token=jwt_refresh_token,
     )
+
+
+@router.post(
+    "/refresh",
+    response_model=TokenRefreshResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def refresh_access_token(
+        token_data: TokenRefreshRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager)
+) -> TokenRefreshResponseSchema:
+    try:
+        decoded_token = jwt_manager.decode_refresh_token(token_data.refresh_token)
+        user_id = decoded_token.get("user_id")
+    except BaseSecurityError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+    stmt = select(RefreshToken).filter_by(token=token_data.refresh_token)
+    result = await db.execute(stmt)
+    refresh_token_record = result.scalars().first()
+    if not refresh_token_record:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found.",
+        )
+
+    stmt = select(User).filter_by(id=user_id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    new_access_token = jwt_manager.create_access_token({"user_id": user_id})
+
+    return TokenRefreshResponseSchema(access_token=new_access_token)
