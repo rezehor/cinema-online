@@ -11,7 +11,7 @@ from starlette import status
 from Cinema.database import get_db
 from Cinema.models import User, UserGroup, UserGroupEnum, ActivationToken, PasswordResetToken
 from Cinema.schemas.users import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
-    UserActivationRequestSchema, PasswordResetRequestSchema
+    UserActivationRequestSchema, PasswordResetRequestSchema, PasswordResetCompleteRequestSchema
 
 router = APIRouter()
 
@@ -141,3 +141,58 @@ async def request_password_reset_token(
     return MessageResponseSchema(
         message="If you are registered, you will receive an email with instructions."
     )
+
+
+@router.post(
+    "/password-reset/complete",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_200_OK
+)
+async def password_reset_complete(
+        data: PasswordResetCompleteRequestSchema,
+        db: AsyncSession = Depends(get_db),
+) -> MessageResponseSchema:
+    stmt = select(User).filter_by(email=data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or token."
+        )
+
+    stmt = select(PasswordResetToken).filter_by(user_id=user.id)
+    result = await db.execute(stmt)
+    token_record = result.scalars().first()
+
+    if not token_record or token_record.token != data.token:
+        if token_record:
+            await db.run_sync(lambda s: s.delete(token_record))
+            await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or token."
+        )
+
+    expires_at = cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        await db.run_sync(lambda s: s.delete(token_record))
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or token."
+        )
+
+    try:
+        user.password = data.password
+        await db.run_sync(lambda s: s.delete(token_record))
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while resetting the password."
+        )
+
+    return MessageResponseSchema(message="Password reset successfully.")
