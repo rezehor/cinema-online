@@ -2,16 +2,16 @@ from datetime import datetime, timezone
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette import status
 
 from Cinema.database import get_db
-from Cinema.models import User, UserGroup, UserGroupEnum, ActivationToken
+from Cinema.models import User, UserGroup, UserGroupEnum, ActivationToken, PasswordResetToken
 from Cinema.schemas.users import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
-    UserActivationRequestSchema
+    UserActivationRequestSchema, PasswordResetRequestSchema
 
 router = APIRouter()
 
@@ -112,3 +112,32 @@ async def activate_user(
     await db.commit()
 
     return MessageResponseSchema(message="User account activated successfully.")
+
+
+@router.post(
+    "/password-reset/request",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_200_OK
+)
+async def request_password_reset_token(
+    request_data: PasswordResetRequestSchema,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponseSchema:
+    stmt = select(User).filter_by(email=request_data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+
+    if not user or not user.is_active:
+        return MessageResponseSchema(
+            message="If you are registered, you will receive an email with instructions."
+        )
+
+    await db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
+
+    reset_token = PasswordResetToken(user_id=cast(int, user.id))
+    db.add(reset_token)
+    await db.commit()
+
+    return MessageResponseSchema(
+        message="If you are registered, you will receive an email with instructions."
+    )
