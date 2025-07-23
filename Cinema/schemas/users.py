@@ -39,3 +39,7 @@ class UserActivationRequestSchema(BaseModel):
 
 class MessageResponseSchema(BaseModel):
     message: str
+
+
+class PasswordResetRequestSchema(BaseModel):
+    email: EmailStr
