@@ -162,3 +162,8 @@ class RefreshToken(TokenBaseModel):
     __tablename__ = "refresh_token"
 
     user = relationship("User", back_populates="refresh_token")
+
+    @classmethod
+    def create(cls, user_id: int, days_valid: int, token: str) -> "RefreshToken":
+        expires_at = datetime.now(timezone.utc) + timedelta(days=days_valid)
+        return cls(user_id=user_id, token=token, expires_at=expires_at)
