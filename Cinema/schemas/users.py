@@ -51,3 +51,9 @@ class PasswordResetCompleteRequestSchema(BaseEmailPasswordSchema):
 
 class UserLoginRequestSchema(BaseEmailPasswordSchema):
     pass
+
+
+class UserLoginResponseSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
