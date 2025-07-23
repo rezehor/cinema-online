@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from .base import Base
-from ..security.passwords import hash_password
+from ..security.passwords import hash_password, verify_password
 from ..validators import users
 
 
@@ -101,6 +101,9 @@ class User(Base):
     def password(self, raw_password: str) -> None:
         users.validate_password_strength(raw_password)
         self.hashed_password = hash_password(raw_password)
+
+    def verify_password(self, raw_password: str) -> bool:
+        return verify_password(raw_password, self.hashed_password)
 
 
 class UserProfile(Base):
