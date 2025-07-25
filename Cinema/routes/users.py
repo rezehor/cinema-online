@@ -153,13 +153,14 @@ async def activate_user(
 
 
 @router.post(
-    "/password-reset/request",
+    "/password-reset/request/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK
 )
 async def request_password_reset_token(
     request_data: PasswordResetRequestSchema,
     db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
 ) -> MessageResponseSchema:
     stmt = select(User).filter_by(email=request_data.email)
     result = await db.execute(stmt)
@@ -176,13 +177,20 @@ async def request_password_reset_token(
     db.add(reset_token)
     await db.commit()
 
+    password_reset_complete_link = "http://127.0.0.1/accounts/password-reset-complete/"
+
+    await email_sender.send_password_reset_email(
+        str(request_data.email),
+        password_reset_complete_link
+    )
+
     return MessageResponseSchema(
         message="If you are registered, you will receive an email with instructions."
     )
 
 
 @router.post(
-    "/password-reset/complete",
+    "/password-reset/complete/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK
 )
@@ -237,7 +245,7 @@ async def password_reset_complete(
 
 
 @router.post(
-    "/login",
+    "/login/",
     response_model=UserLoginResponseSchema,
     status_code=status.HTTP_201_CREATED,
 )
@@ -289,7 +297,7 @@ async def login_user(
 
 
 @router.post(
-    "/refresh",
+    "/refresh/",
     response_model=TokenRefreshResponseSchema,
     status_code=status.HTTP_200_OK,
 )
