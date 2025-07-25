@@ -3,9 +3,9 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from database import get_db
-from models import Movie, Certification, Genre, Star, Director
-from schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
+from Cinema.database import get_db
+from Cinema.models import Movie, Certification, Genre, Star, Director
+from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
     MovieUpdateSchema
 
 router = APIRouter()

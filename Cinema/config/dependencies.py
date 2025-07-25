@@ -1,9 +1,9 @@
 from fastapi import Depends
 from config.settings import Settings, BaseAppSettings
-from notifications.emails import EmailSender
-from notifications.interfaces import EmailSenderInterface
-from security.interfaces import JWTAuthManagerInterface
-from security.token_manager import JWTAuthManager
+from Cinema.notifications.emails import EmailSender
+from Cinema.notifications.interfaces import EmailSenderInterface
+from Cinema.security.interfaces import JWTAuthManagerInterface
+from Cinema.security.token_manager import JWTAuthManager
 
 
 def get_settings() -> Settings:

@@ -14,9 +14,9 @@ from sqlalchemy import (
     Date
 )
 from sqlalchemy.orm import relationship
-from models.base import Base
-from security.passwords import hash_password, verify_password
-from validators import users
+from .base import Base
+from ..security.passwords import hash_password, verify_password
+from ..validators import users
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -135,7 +135,7 @@ class TokenBaseModel(Base):
         String,
         nullable=False,
         unique=True,
-        default=secrets.token_urlsafe(32)
+        default=secrets.token_urlsafe
     )
     expires_at = Column(
         DateTime(timezone=True),

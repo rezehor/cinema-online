@@ -12,7 +12,6 @@ class BaseAppSettings(BaseSettings):
         extra="ignore"
     )
 
-
     PATH_TO_EMAIL_TEMPLATES_DIR: str = str(BASE_DIR / "Cinema" / "notifications" / "templates")
     ACTIVATION_EMAIL_TEMPLATE_NAME: str = "activation_request.html"
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
@@ -28,9 +27,14 @@ class BaseAppSettings(BaseSettings):
     EMAIL_USE_TLS: bool = False
     MAILHOG_API_PORT: int = 8025
 
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
 
 class Settings(BaseAppSettings):
 
     SECRET_KEY_ACCESS: str
     SECRET_KEY_REFRESH: str
     JWT_SIGNING_ALGORITHM: str
+
+settings = Settings()
