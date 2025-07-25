@@ -197,6 +197,7 @@ async def request_password_reset_token(
 async def password_reset_complete(
         data: PasswordResetCompleteRequestSchema,
         db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
 ) -> MessageResponseSchema:
     stmt = select(User).filter_by(email=data.email)
     result = await db.execute(stmt)
@@ -240,6 +241,13 @@ async def password_reset_complete(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while resetting the password."
         )
+
+    login_link = "http://127.0.0.1/accounts/login/"
+
+    await email_sender.send_password_reset_complete_email(
+        str(data.email),
+        login_link
+    )
 
     return MessageResponseSchema(message="Password reset successfully.")
 
