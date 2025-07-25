@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette import status
 
-from Cinema.config.dependencies import get_settings, get_jwt_auth_manager
-from Cinema.config.settings import Settings
-from Cinema.database import get_db
-from Cinema.exceptions.security import BaseSecurityError
-from Cinema.models import (
+from config.dependencies import get_settings, get_jwt_auth_manager
+from config.settings import Settings
+from database import get_db
+from exceptions.security import BaseSecurityError
+from models import (
     User,
     UserGroup,
     UserGroupEnum,
@@ -20,7 +20,7 @@ from Cinema.models import (
     PasswordResetToken,
     RefreshToken
 )
-from Cinema.schemas.users import (
+from schemas.users import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
     MessageResponseSchema,
@@ -32,7 +32,7 @@ from Cinema.schemas.users import (
     TokenRefreshResponseSchema,
     TokenRefreshRequestSchema
 )
-from Cinema.security.interfaces import JWTAuthManagerInterface
+from security.interfaces import JWTAuthManagerInterface
 
 router = APIRouter()
 

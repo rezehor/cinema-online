@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from Cinema.validators import users
+from validators import users
 
 
 class BaseEmailPasswordSchema(BaseModel):

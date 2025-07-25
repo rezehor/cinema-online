@@ -13,9 +13,9 @@ from sqlalchemy import (
     Date
 )
 from sqlalchemy.orm import relationship
-from .base import Base
-from ..security.passwords import hash_password, verify_password
-from ..validators import users
+from models.base import Base
+from security.passwords import hash_password, verify_password
+from validators import users
 
 
 class UserGroupEnum(str, enum.Enum):

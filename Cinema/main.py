@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from Cinema.routes import movies, users
+from routes import movies, users
 
 app = FastAPI(
     title="Online Cinema",
