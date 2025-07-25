@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette import status
 
-from config.dependencies import get_settings, get_jwt_auth_manager
+from config.dependencies import get_settings, get_jwt_auth_manager, get_accounts_email_notificator
 from config.settings import Settings
 from database import get_db
 from exceptions.security import BaseSecurityError
@@ -20,6 +20,7 @@ from models import (
     PasswordResetToken,
     RefreshToken
 )
+from notifications.interfaces import EmailSenderInterface
 from schemas.users import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
@@ -37,13 +38,14 @@ from security.interfaces import JWTAuthManagerInterface
 router = APIRouter()
 
 @router.post(
-    "/register",
+    "/register/",
     response_model=UserRegistrationResponseSchema,
     status_code=status.HTTP_201_CREATED
 )
 async def register_user(
         user_data: UserRegistrationRequestSchema,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_db),
+        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
 ) -> UserRegistrationResponseSchema:
     existing_stmt = select(User).where(User.email == user_data.email)
     existing_result = await db.execute(existing_stmt)
@@ -86,11 +88,18 @@ async def register_user(
             detail="An error occurred during user creation."
         ) from e
     else:
+        activation_link = "http://127.0.0.1/users/activate/"
+
+        await email_sender.send_activation_email(
+            new_user.email,
+            activation_link
+        )
+
         return UserRegistrationResponseSchema.model_validate(new_user)
 
 
 @router.post(
-    "/activate",
+    "/activate/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK
 )

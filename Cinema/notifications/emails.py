@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader
 from exceptions.email import BaseEmailError
-from notifications.templates.interfaces import EmailSenderInterface
+from notifications.interfaces import EmailSenderInterface
 
 
 class EmailSender(EmailSenderInterface):
