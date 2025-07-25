@@ -2,11 +2,18 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class BaseAppSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env")
+BASE_DIR: Path = Path(__file__).parent.parent.parent
+ENV_FILE_PATH = BASE_DIR / ".env"
 
-    BASE_DIR: Path = Path(__file__).parent.parent
-    PATH_TO_EMAIL_TEMPLATES_DIR: str = str(BASE_DIR / "notifications" / "templates")
+
+class BaseAppSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE_PATH,
+        extra="ignore"
+    )
+
+
+    PATH_TO_EMAIL_TEMPLATES_DIR: str = str(BASE_DIR / "Cinema" / "notifications" / "templates")
     ACTIVATION_EMAIL_TEMPLATE_NAME: str = "activation_request.html"
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
     PASSWORD_RESET_TEMPLATE_NAME: str = "password_reset_request.html"
