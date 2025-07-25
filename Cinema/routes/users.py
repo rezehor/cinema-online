@@ -105,7 +105,8 @@ async def register_user(
 )
 async def activate_user(
         activation_data: UserActivationRequestSchema,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_db),
+        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
 ) -> MessageResponseSchema:
     stmt = (
         select(ActivationToken)
@@ -140,6 +141,13 @@ async def activate_user(
     user.is_active = True
     await db.delete(token_record)
     await db.commit()
+
+    login_link = "http://127.0.0.1/users/login/"
+
+    await email_sender.send_activation_complete_email(
+        str(activation_data.email),
+        login_link
+    )
 
     return MessageResponseSchema(message="User account activated successfully.")
 
