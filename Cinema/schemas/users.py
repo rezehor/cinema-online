@@ -66,3 +66,9 @@ class TokenRefreshRequestSchema(BaseModel):
 class TokenRefreshResponseSchema(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class ResendActivationRequestSchema(BaseModel):
+    email: EmailStr
+
+
