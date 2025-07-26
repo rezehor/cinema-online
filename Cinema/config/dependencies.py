@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
@@ -6,8 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from Cinema.config.settings import Settings, BaseAppSettings
 from Cinema.database import get_db
-from Cinema.exceptions.security import BaseSecurityError
-from Cinema.models import User
+from Cinema.models import User, UserGroupEnum
 from Cinema.notifications.emails import EmailSender
 from Cinema.notifications.interfaces import EmailSenderInterface
 from Cinema.security.interfaces import JWTAuthManagerInterface
@@ -92,3 +91,14 @@ async def get_current_user(
         )
 
     return user
+
+def role_required(allowed_roles: List[UserGroupEnum]):
+    def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.group.name not in [role.value for role in allowed_roles]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Not enough permissions. Required roles: {[role.value for role in allowed_roles]}"
+            )
+        return current_user
+
+    return role_checker
