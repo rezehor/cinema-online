@@ -1,8 +1,8 @@
 import re
+from datetime import date
 from PIL import Image
 from io import BytesIO
 from fastapi import UploadFile
-
 from Cinema.models.users import GenderEnum
 
 
@@ -32,3 +32,8 @@ def validate_image(avatar: UploadFile) -> None:
 def validate_gender(gender: str) -> None:
     if gender not in GenderEnum.__members__.values():
         raise ValueError(f"Gender must be one of: {', '.join(g.value for g in GenderEnum)}")
+
+
+def validate_birth_date(birth_date: date) -> None:
+    if birth_date.year < 1900:
+        raise ValueError('Invalid birth date - year must be greater than 1900.')
