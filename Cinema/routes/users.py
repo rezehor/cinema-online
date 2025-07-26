@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -296,16 +296,17 @@ async def password_reset_complete(
     status_code=status.HTTP_201_CREATED,
 )
 async def login_user(
-        login_data: UserLoginRequestSchema,
+        username: str = Form(...),
+        password: str = Form(...),
         db: AsyncSession = Depends(get_db),
         settings: Settings = Depends(get_settings),
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager)
 ) -> UserLoginResponseSchema:
-    stmt = select(User).filter_by(email=login_data.email)
+    stmt = select(User).filter_by(email=username)
     result = await db.execute(stmt)
     user = result.scalars().first()
 
-    if not user or not user.verify_password(login_data.password):
+    if not user or not user.verify_password(password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
@@ -316,6 +317,8 @@ async def login_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is not activated.",
         )
+    await db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
+    await db.flush()
 
     jwt_refresh_token = jwt_manager.create_refresh_token({"user_id": user.id})
 
@@ -340,6 +343,21 @@ async def login_user(
         access_token=jwt_access_token,
         refresh_token=jwt_refresh_token,
     )
+
+
+@router.post(
+    "/logout/",
+    status_code=status.HTTP_200_OK,
+    response_model=MessageResponseSchema,
+)
+async def logout_user(
+        data: TokenRefreshRequestSchema,
+        db: AsyncSession = Depends(get_db),
+) -> MessageResponseSchema:
+    await db.execute(delete(RefreshToken).where(RefreshToken.token == data.refresh_token))
+    await db.commit()
+
+    return MessageResponseSchema(message="Successfully logged out.")
 
 
 @router.post(

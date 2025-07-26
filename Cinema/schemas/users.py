@@ -72,3 +72,6 @@ class ResendActivationRequestSchema(BaseModel):
     email: EmailStr
 
 
+class ChangePasswordRequestSchema(BaseModel):
+    password: str
+    new_password: str
