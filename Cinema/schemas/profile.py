@@ -1,8 +1,12 @@
 from datetime import date
 from fastapi import UploadFile, Form, File, HTTPException
-from pydantic import BaseModel, field_validator
-
-from Cinema.validation.profile import validate_name, validate_image, validate_gender, validate_birth_date
+from pydantic import BaseModel, field_validator, HttpUrl
+from Cinema.validation.profile import (
+    validate_name,
+    validate_image,
+    validate_gender,
+    validate_birth_date
+)
 
 
 class ProfileCreateSchema(BaseModel):
@@ -117,3 +121,14 @@ class ProfileCreateSchema(BaseModel):
                 }]
             )
         return cleaned_info
+
+
+class ProfileResponseSchema(BaseModel):
+    id: int
+    user_id: int
+    first_name: str
+    last_name: str
+    gender: str
+    date_of_birth: date
+    info: str
+    avatar: HttpUrl
