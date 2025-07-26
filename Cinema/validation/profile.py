@@ -3,6 +3,8 @@ from PIL import Image
 from io import BytesIO
 from fastapi import UploadFile
 
+from Cinema.models.users import GenderEnum
+
 
 def validate_name(name: str):
     if re.search(r'^[A-Za-z]*$', name) is None:
@@ -25,3 +27,8 @@ def validate_image(avatar: UploadFile) -> None:
             raise ValueError(f"Unsupported image format: {image_format}. Use one of next: {supported_image_formats}")
     except IOError:
         raise ValueError("Invalid image format")
+
+
+def validate_gender(gender: str) -> None:
+    if gender not in GenderEnum.__members__.values():
+        raise ValueError(f"Gender must be one of: {', '.join(g.value for g in GenderEnum)}")
