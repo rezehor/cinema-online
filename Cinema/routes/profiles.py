@@ -14,7 +14,7 @@ from Cinema.storages.interfaces import S3StorageInterface
 router = APIRouter()
 
 @router.post(
-    "/profile/",
+    "/",
     response_model=ProfileResponseSchema,
     summary="Create user profile",
     status_code=status.HTTP_201_CREATED
@@ -73,3 +73,39 @@ async def create_profile(
         info=new_profile.info,
         avatar=cast(HttpUrl, avatar_url)
     )
+
+@router.get(
+    "/profile/me",
+    response_model=ProfileResponseSchema,
+    summary="Get current user's profile",
+)
+async def get_own_profile(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    s3_client: S3StorageInterface = Depends(get_s3_storage_client),
+) -> ProfileResponseSchema:
+    stmt = select(UserProfile).where(UserProfile.user_id == current_user.id)
+    result = await db.execute(stmt)
+    profile = result.scalars().first()
+
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Profile not found."
+        )
+
+    avatar_url = None
+    if profile.avatar:
+        avatar_url = await s3_client.get_file_url(profile.avatar)
+
+    return ProfileResponseSchema(
+        id=profile.id,
+        user_id=profile.user_id,
+        first_name=profile.first_name,
+        last_name=profile.last_name,
+        gender=profile.gender,
+        date_of_birth=profile.date_of_birth,
+        info=profile.info,
+        avatar=cast(HttpUrl, avatar_url) if avatar_url else None
+    )
+
