@@ -1,5 +1,13 @@
-from fastapi import Depends
+from typing import Optional
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from Cinema.config.settings import Settings, BaseAppSettings
+from Cinema.database import get_db
+from Cinema.exceptions.security import BaseSecurityError
+from Cinema.models import User
 from Cinema.notifications.emails import EmailSender
 from Cinema.notifications.interfaces import EmailSenderInterface
 from Cinema.security.interfaces import JWTAuthManagerInterface
@@ -48,3 +56,39 @@ def get_s3_storage_client(
         secret_key=settings.S3_STORAGE_SECRET_KEY,
         bucket_name=settings.S3_BUCKET_NAME
     )
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt_manager.decode_access_token(token)
+        user_id: Optional[int] = payload.get("user_id")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    stmt = select(User).filter_by(id=user_id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+
+    if user is None:
+        raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user.",
+        )
+
+    return user

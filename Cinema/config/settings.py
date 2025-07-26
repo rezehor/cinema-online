@@ -30,11 +30,11 @@ class BaseAppSettings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
-    S3_STORAGE_HOST: str
+    S3_STORAGE_HOST: str = "localhost"
     S3_STORAGE_PORT: int = 9000
-    S3_STORAGE_ACCESS_KEY: str
-    S3_STORAGE_SECRET_KEY: str
-    S3_BUCKET_NAME: str
+    S3_STORAGE_ACCESS_KEY: str = "minioadmin"
+    S3_STORAGE_SECRET_KEY: str = "minioadmin"
+    S3_BUCKET_NAME: str = "theater-storage"
 
     @property
     def S3_STORAGE_ENDPOINT(self) -> str:
