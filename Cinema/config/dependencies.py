@@ -1,9 +1,11 @@
 from fastapi import Depends
-from config.settings import Settings, BaseAppSettings
+from Cinema.config.settings import Settings, BaseAppSettings
 from Cinema.notifications.emails import EmailSender
 from Cinema.notifications.interfaces import EmailSenderInterface
 from Cinema.security.interfaces import JWTAuthManagerInterface
 from Cinema.security.token_manager import JWTAuthManager
+from Cinema.storages.interfaces import S3StorageInterface
+from Cinema.storages.s3 import S3StorageClient
 
 
 def get_settings() -> Settings:
@@ -34,4 +36,15 @@ def get_accounts_email_notificator(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME
+    )
+
+def get_s3_storage_client(
+    settings: BaseAppSettings = Depends(get_settings)
+) -> S3StorageInterface:
+
+    return S3StorageClient(
+        endpoint_url=settings.S3_STORAGE_ENDPOINT,
+        access_key=settings.S3_STORAGE_ACCESS_KEY,
+        secret_key=settings.S3_STORAGE_SECRET_KEY,
+        bucket_name=settings.S3_BUCKET_NAME
     )
