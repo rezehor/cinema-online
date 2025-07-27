@@ -32,7 +32,7 @@ from Cinema.schemas.users import (
     UserLoginResponseSchema,
     UserLoginRequestSchema,
     TokenRefreshResponseSchema,
-    TokenRefreshRequestSchema, ResendActivationRequestSchema
+    TokenRefreshRequestSchema, ResendActivationRequestSchema, ChangePasswordRequestSchema
 )
 from Cinema.security.interfaces import JWTAuthManagerInterface
 
@@ -407,7 +407,6 @@ async def refresh_access_token(
 
 @router.delete(
     "/{user_id}",
-    response_model=MessageResponseSchema,
     summary="Delete user's profile",
     description=" Only admin can delete user's profile",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -416,7 +415,7 @@ async def delete_user(
         user_id: int,
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user)
-) -> MessageResponseSchema:
+) -> None:
     if current_user.group.name != UserGroupEnum.ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -432,5 +431,34 @@ async def delete_user(
     await db.delete(user)
     await db.commit()
 
-    return MessageResponseSchema(message="User deleted successfully.")
 
+@router.post(
+    "/change-password/",
+    response_model=MessageResponseSchema,
+    summary="Change current user's password",
+)
+async def change_password(
+    request_data: ChangePasswordRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> MessageResponseSchema:
+
+    if not current_user.verify_password(request_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect password."
+        )
+
+    if request_data.password == request_data.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be the same as the old password."
+        )
+
+    current_user.password = request_data.new_password
+    db.add(current_user)
+
+    await db.execute(delete(RefreshToken).where(RefreshToken.user_id == current_user.id))
+    await db.commit()
+
+    return MessageResponseSchema(message="Password has been changed successfully.")
