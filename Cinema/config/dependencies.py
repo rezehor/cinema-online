@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 from Cinema.config.settings import Settings, BaseAppSettings
 from Cinema.database import get_db
 from Cinema.models import User, UserGroupEnum
@@ -77,7 +78,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    stmt = select(User).filter_by(id=user_id)
+    stmt = select(User).options(joinedload(User.group)).filter_by(id=user_id)
     result = await db.execute(stmt)
     user = result.scalars().first()
 
@@ -91,14 +92,3 @@ async def get_current_user(
         )
 
     return user
-
-def role_required(allowed_roles: List[UserGroupEnum]):
-    def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.group.name not in [role.value for role in allowed_roles]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Not enough permissions. Required roles: {[role.value for role in allowed_roles]}"
-            )
-        return current_user
-
-    return role_checker

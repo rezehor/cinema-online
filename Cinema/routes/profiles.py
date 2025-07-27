@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from Cinema.config.dependencies import get_s3_storage_client, get_current_user
 from Cinema.database import get_db
 from Cinema.exceptions.storage import S3FileUploadError
-from Cinema.models import User, UserProfile, GenderEnum
+from Cinema.models import User, UserProfile, GenderEnum, UserGroupEnum
 from Cinema.schemas.profiles import ProfileCreateSchema, ProfileResponseSchema, ProfileUpdateSchema
 from Cinema.storages.interfaces import S3StorageInterface
 
@@ -157,6 +157,52 @@ async def update_profile(
 
     await db.commit()
     await db.refresh(profile)
+
+    avatar_url = None
+    if profile.avatar:
+        avatar_url = await s3_client.get_file_url(profile.avatar)
+
+    return ProfileResponseSchema(
+        id=profile.id,
+        user_id=profile.user_id,
+        first_name=profile.first_name,
+        last_name=profile.last_name,
+        gender=profile.gender,
+        date_of_birth=profile.date_of_birth,
+        info=profile.info,
+        avatar=cast(HttpUrl, avatar_url) if avatar_url else None
+    )
+
+
+@router.get(
+    "/{user_id}",
+    response_model=ProfileResponseSchema,
+    summary="Get user's profile",
+    description=" Only admin and moderators can see their profile",
+    status_code=status.HTTP_200_OK,
+)
+async def get_user_profile(
+        user_id: int,
+        db: AsyncSession = Depends(get_db),
+        s3_client: S3StorageInterface = Depends(get_s3_storage_client),
+        current_user: User = Depends(get_current_user)
+) -> ProfileResponseSchema:
+
+    if current_user.group.name not in [UserGroupEnum.ADMIN.value, UserGroupEnum.MODERATOR.value]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to view other users' profiles.",
+        )
+
+    stmt = select(UserProfile).where(UserProfile.user_id == user_id)
+    result = await db.execute(stmt)
+    profile = result.scalars().first()
+
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Profile not found."
+        )
 
     avatar_url = None
     if profile.avatar:
