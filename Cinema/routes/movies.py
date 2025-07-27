@@ -1,8 +1,10 @@
+from typing import Optional
+
 from fastapi import APIRouter, Query, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from Cinema.database import get_db
 from Cinema.models import Movie, Certification, Genre, Star, Director
 from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
@@ -15,8 +17,23 @@ router = APIRouter()
 async def get_movies(
         page: int = Query(1, ge=1, description="Page number"),
         per_page: int = Query(10, ge=1, le=20, description="Number of movies per page"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_db),
+        # Filtering parameters
+        year: Optional[int] = Query(None, description="Filter by release year"),
+        imdb: Optional[float] = Query(None, ge=0, le=10, description="Filter by imdb rating"),
+        genre: Optional[str] = Query(None, description="Filter by genre name"),
 ) -> MovieListResponseSchema:
+    stmt = select(Movie).options(
+        selectinload(Movie.genres),
+        selectinload(Movie.stars),
+        selectinload(Movie.directors)
+    )
+    if year:
+        stmt = stmt.filter(Movie.year == year)
+    if imdb:
+        stmt = stmt.where(Movie.imdb >= imdb)
+    if genre:
+        stmt = stmt.join(Movie.genres).where(func.lower(Genre.name) == genre.lower())
     offset = (page - 1) * per_page
     count_stmt = select(func.count(Movie.id))
     result_count = await db.execute(count_stmt)
@@ -25,7 +42,6 @@ async def get_movies(
     if not total_items:
         raise HTTPException(status_code=404, detail="No movies found.")
 
-    stmt = select(Movie)
     stmt = stmt.offset(offset).limit(per_page)
 
     result_movies = await db.execute(stmt)
