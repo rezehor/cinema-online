@@ -57,7 +57,7 @@ def get_s3_storage_client(
         bucket_name=settings.S3_BUCKET_NAME
     )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login/")
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),

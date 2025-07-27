@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette import status
 
-from Cinema.config.dependencies import get_settings, get_jwt_auth_manager, get_accounts_email_notificator
+from Cinema.config.dependencies import get_settings, get_jwt_auth_manager, get_accounts_email_notificator, \
+    get_current_user
 from Cinema.config.settings import Settings
 from Cinema.database import get_db
 from Cinema.exceptions.security import BaseSecurityError
@@ -402,3 +403,34 @@ async def refresh_access_token(
     new_access_token = jwt_manager.create_access_token({"user_id": user_id})
 
     return TokenRefreshResponseSchema(access_token=new_access_token)
+
+
+@router.delete(
+    "/{user_id}",
+    response_model=MessageResponseSchema,
+    summary="Delete user's profile",
+    description=" Only admin can delete user's profile",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_user(
+        user_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+) -> MessageResponseSchema:
+    if current_user.group.name != UserGroupEnum.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete users",
+        )
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User with the given ID was not found.")
+
+    await db.delete(user)
+    await db.commit()
+
+    return MessageResponseSchema(message="User deleted successfully.")
+
