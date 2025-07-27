@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 
 from fastapi import APIRouter, Query, Depends, HTTPException, status
@@ -12,6 +13,14 @@ from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, 
 
 router = APIRouter()
 
+class MovieSortByEnum(str, Enum):
+    year = "year"
+    imdb = "imdb"
+    votes = "votes"
+
+class SortOrderEnum(str, Enum):
+    asc = "asc"
+    desc = "desc"
 
 @router.get("/", response_model=MovieListResponseSchema)
 async def get_movies(
@@ -22,6 +31,9 @@ async def get_movies(
         year: Optional[int] = Query(None, description="Filter by release year"),
         imdb: Optional[float] = Query(None, ge=0, le=10, description="Filter by imdb rating"),
         genre: Optional[str] = Query(None, description="Filter by genre name"),
+        # Sorting parameters
+        sort_by: Optional[MovieSortByEnum] = Query(None, description="Attribute to sort movies by"),
+        sort_order: SortOrderEnum = Query(SortOrderEnum.desc, description="Sort order: 'asc' or 'desc'"),
 ) -> MovieListResponseSchema:
     stmt = select(Movie).options(
         selectinload(Movie.genres),
@@ -34,6 +46,13 @@ async def get_movies(
         stmt = stmt.where(Movie.imdb >= imdb)
     if genre:
         stmt = stmt.join(Movie.genres).where(func.lower(Genre.name) == genre.lower())
+
+    if sort_by:
+        sort_column = getattr(Movie, sort_by.value)
+        if sort_order == SortOrderEnum.desc:
+            stmt = stmt.order_by(sort_column.desc())
+        stmt = stmt.order_by(sort_column.asc())
+
     offset = (page - 1) * per_page
     count_stmt = select(func.count(Movie.id))
     result_count = await db.execute(count_stmt)
