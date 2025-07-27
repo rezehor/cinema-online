@@ -1,11 +1,10 @@
 from enum import Enum
 from typing import Optional
-
 from fastapi import APIRouter, Query, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 from Cinema.database import get_db
 from Cinema.models import Movie, Certification, Genre, Star, Director
 from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
@@ -34,6 +33,11 @@ async def get_movies(
         # Sorting parameters
         sort_by: Optional[MovieSortByEnum] = Query(None, description="Attribute to sort movies by"),
         sort_order: SortOrderEnum = Query(SortOrderEnum.desc, description="Sort order: 'asc' or 'desc'"),
+        # Searching parameters
+        search: Optional[str] = Query(
+            None,
+            description="Search by movie title, description, star, or director name"
+        )
 ) -> MovieListResponseSchema:
     stmt = select(Movie).options(
         selectinload(Movie.genres),
@@ -53,6 +57,17 @@ async def get_movies(
             stmt = stmt.order_by(sort_column.desc())
         stmt = stmt.order_by(sort_column.asc())
 
+    if search:
+        search_term = f"%{search.lower()}%"
+        stmt = stmt.join(Movie.stars).join(Movie.directors).where(
+            or_(
+                func.lower(Movie.name).like(search_term),
+                func.lower(Movie.description).like(search_term),
+                func.lower(Star.name).like(search_term),
+                func.lower(Director.name).like(search_term)
+            )
+        )
+
     offset = (page - 1) * per_page
     count_stmt = select(func.count(Movie.id))
     result_count = await db.execute(count_stmt)
@@ -64,7 +79,7 @@ async def get_movies(
     stmt = stmt.offset(offset).limit(per_page)
 
     result_movies = await db.execute(stmt)
-    movies = result_movies.scalars().all()
+    movies = result_movies.scalars().unique().all()
 
     if not movies:
         raise HTTPException(status_code=404, detail="No movies found.")
@@ -90,10 +105,10 @@ async def get_movie_by_id(
 ) -> MovieDetailSchema:
     stmt = (select(Movie)
             .options(
-        joinedload(Movie.genres),
-        joinedload(Movie.stars),
-        joinedload(Movie.directors),
-        joinedload(Movie.certification))
+        selectinload(Movie.genres),
+        selectinload(Movie.stars),
+        selectinload(Movie.directors),
+        selectinload(Movie.certification))
             .where(Movie.id == movie_id)
             )
 
