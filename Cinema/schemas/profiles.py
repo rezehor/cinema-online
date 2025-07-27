@@ -1,6 +1,10 @@
 from datetime import date
+from typing import Optional, Any
+
 from fastapi import UploadFile, Form, File, HTTPException
 from pydantic import BaseModel, field_validator, HttpUrl
+
+from Cinema.models import GenderEnum
 from Cinema.validation.profile import (
     validate_name,
     validate_image,
@@ -132,3 +136,34 @@ class ProfileResponseSchema(BaseModel):
     date_of_birth: date
     info: str
     avatar: HttpUrl
+
+class ProfileUpdateSchema(BaseModel):
+    first_name: Optional[str]
+    last_name: Optional[str]
+    gender: Optional[GenderEnum]
+    date_of_birth: Optional[date]
+    info: Optional[str]
+    avatar: Optional[UploadFile] = None
+
+    @classmethod
+    def as_form(
+        cls,
+        first_name: Optional[str] = Form(None),
+        last_name: Optional[str] = Form(None),
+        gender: Optional[str] = Form(None),
+        date_of_birth: Optional[str] = Form(None),
+        info: Optional[str] = Form(None),
+        avatar: Any = File(None),
+    ):
+        def clean_str(value: Optional[str]) -> Optional[str]:
+            return value if value and value.strip() != "" else None
+
+
+        return cls(
+            first_name=clean_str(first_name),
+            last_name=clean_str(last_name),
+            gender=GenderEnum(gender) if gender else None,
+            date_of_birth=date.fromisoformat(date_of_birth) if date_of_birth else None,
+            info=clean_str(info),
+            avatar=avatar if isinstance(avatar, UploadFile) else None,
+        )
