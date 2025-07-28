@@ -4,6 +4,7 @@ from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, 
 from sqlalchemy.orm import relationship
 
 from .base import Base
+from .users import UserFavoriteMovie
 
 MovieGenres = Table(
     "movie_genres",
@@ -139,6 +140,11 @@ class Movie(Base):
         "MovieLike",
         back_populates="movies",
         cascade="all, delete-orphan"
+    )
+    users_favorite_movies = relationship(
+        "User",
+        secondary=UserFavoriteMovie,
+        back_populates="favorite_movies"
     )
 
     __table_args__ = (
