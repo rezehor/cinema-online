@@ -52,3 +52,30 @@ async def add_movie_to_favorites(
     return MessageResponseSchema(message=f"{movie.name} added to favorites")
 
 
+@router.delete(
+    "/{movie_id}",
+    summary="Remove a movie from favorites",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def remove_movie_from_favorites(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    stmt = select(Movie).join(UserFavoriteMovie).where(
+        Movie.id == movie_id,
+        UserFavoriteMovie.c.user_id == current_user.id
+    )
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found in your favorites."
+        )
+
+    current_user.favorite_movies.remove(movie)
+    await db.commit()
+
+
