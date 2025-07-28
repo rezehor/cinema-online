@@ -3,6 +3,8 @@ from decimal import Decimal
 from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 
+from Cinema.models.movies import LikeStatusEnum
+
 
 class GenreSchema(BaseModel):
     id: int
@@ -61,6 +63,8 @@ class MovieDetailSchema(MovieBaseSchema):
     genres: List[GenreSchema]
     stars: List[StarSchema]
     directors: List[DirectorSchema]
+    likes: int
+    dislikes: int
 
     model_config = {"from_attributes": True}
 
@@ -115,3 +119,12 @@ class MovieUpdateSchema(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
+class MovieLikeRequestSchema(BaseModel):
+    like_status: LikeStatusEnum
+
+
+class MovieLikeResponseSchema(BaseModel):
+    likes: int
+    dislikes: int
+    user_status: Optional[LikeStatusEnum] = None

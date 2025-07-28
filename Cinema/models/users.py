@@ -85,6 +85,8 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    likes = relationship("MovieLike", back_populates="user")
+
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
 
