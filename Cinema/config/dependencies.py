@@ -78,7 +78,10 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    stmt = select(User).options(joinedload(User.group)).filter_by(id=user_id)
+    stmt = (select(User).options(
+        joinedload(User.group),
+            joinedload(User.favorite_movies))
+            .filter_by(id=user_id))
     result = await db.execute(stmt)
     user = result.scalars().first()
 
