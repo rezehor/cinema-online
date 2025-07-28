@@ -5,10 +5,13 @@ from sqlalchemy import func, select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from Cinema.config.dependencies import get_current_user
 from Cinema.database import get_db
-from Cinema.models import Movie, Certification, Genre, Star, Director
+from Cinema.models import Movie, Certification, Genre, Star, Director, User
+from Cinema.models.movies import MovieLike, LikeStatusEnum
 from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
-    MovieUpdateSchema
+    MovieUpdateSchema, MovieLikeResponseSchema, MovieLikeRequestSchema
 
 router = APIRouter()
 
@@ -98,30 +101,50 @@ async def get_movies(
     return response
 
 
+async def get_movie_like_stats(movie_id: int, db: AsyncSession):
+    stmt = (
+        select(
+            func.count().filter(MovieLike.like_status == LikeStatusEnum.LIKE),
+            func.count().filter(MovieLike.like_status == LikeStatusEnum.DISLIKE)
+        )
+        .where(MovieLike.movie_id == movie_id)
+    )
+    result = await db.execute(stmt)
+    likes, dislikes = result.one()
+    return likes, dislikes
+
 @router.get("/{movie_id}", response_model=MovieDetailSchema)
 async def get_movie_by_id(
-        movie_id: int,
-        db: AsyncSession = Depends(get_db)
+    movie_id: int,
+    db: AsyncSession = Depends(get_db)
 ) -> MovieDetailSchema:
-    stmt = (select(Movie)
-            .options(
-        selectinload(Movie.genres),
-        selectinload(Movie.stars),
-        selectinload(Movie.directors),
-        selectinload(Movie.certification))
-            .where(Movie.id == movie_id)
-            )
-
+    stmt = (
+        select(Movie)
+        .options(
+            selectinload(Movie.genres),
+            selectinload(Movie.stars),
+            selectinload(Movie.directors),
+            selectinload(Movie.certification),
+        )
+        .where(Movie.id == movie_id)
+    )
     result = await db.execute(stmt)
     movie = result.scalars().first()
 
     if not movie:
-        raise HTTPException(
-            status_code=404,
-            detail="Movie with the given ID was not found."
-        )
+        raise HTTPException(status_code=404, detail="Movie with the given ID was not found.")
 
-    return MovieDetailSchema.model_validate(movie)
+    likes, dislikes = await get_movie_like_stats(movie_id, db)
+
+    return MovieDetailSchema.model_validate({
+        **movie.__dict__,
+        "genres": movie.genres,
+        "stars": movie.stars,
+        "directors": movie.directors,
+        "certification": movie.certification,
+        "likes": likes,
+        "dislikes": dislikes
+    })
 
 
 @router.post(
@@ -256,3 +279,62 @@ async def update_movie(
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
     return {"detail": "Movie updated successfully."}
+
+
+@router.post(
+    "/{movie_id}/like",
+    response_model=MovieLikeResponseSchema,
+    summary="Like or dislike a movie",
+)
+async def like_movie(
+        movie_id: int,
+        like_data: MovieLikeRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+) -> MovieLikeResponseSchema:
+
+    movie = (await db.execute(select(Movie).where(Movie.id == movie_id))).scalars().first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found.")
+
+    existing_like_stmt = select(MovieLike).where(
+        MovieLike.user_id == current_user.id,
+        MovieLike.movie_id == movie_id
+    )
+    existing_like = (await db.execute(existing_like_stmt)).scalars().first()
+
+    if existing_like:
+        if existing_like.like_status == like_data.like_status:
+            await db.delete(existing_like)
+        else:
+            existing_like.like_status = like_data.like_status
+            db.add(existing_like)
+    else:
+        new_like = MovieLike(
+            user_id=current_user.id,
+            movie_id=movie_id,
+            like_status=like_data.like_status
+        )
+        db.add(new_like)
+
+    await db.commit()
+
+    likes_count_stmt = select(func.count(MovieLike.user_id)).where(
+        MovieLike.movie_id == movie_id,
+        MovieLike.like_status == LikeStatusEnum.LIKE
+    )
+    dislikes_count_stmt = select(func.count(MovieLike.user_id)).where(
+        MovieLike.movie_id == movie_id,
+        MovieLike.like_status == LikeStatusEnum.DISLIKE
+    )
+
+    likes_count = (await db.execute(likes_count_stmt)).scalar_one()
+    dislikes_count = (await db.execute(dislikes_count_stmt)).scalar_one()
+
+    final_user_like = (await db.execute(existing_like_stmt)).scalars().first()
+
+    return MovieLikeResponseSchema(
+        likes=likes_count,
+        dislikes=dislikes_count,
+        user_status=final_user_like.like_status if final_user_like else None
+    )
