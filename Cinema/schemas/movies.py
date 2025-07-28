@@ -128,3 +128,15 @@ class MovieLikeResponseSchema(BaseModel):
     likes: int
     dislikes: int
     user_status: Optional[LikeStatusEnum] = None
+
+
+class GenreWithCountSchema(BaseModel):
+    id: int
+    name: str
+    movie_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class GenreListResponseSchema(BaseModel):
+    genres: list[GenreWithCountSchema]
