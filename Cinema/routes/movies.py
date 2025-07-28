@@ -113,6 +113,7 @@ async def get_movie_like_stats(movie_id: int, db: AsyncSession):
     likes, dislikes = result.one()
     return likes, dislikes
 
+
 @router.get("/{movie_id}", response_model=MovieDetailSchema)
 async def get_movie_by_id(
     movie_id: int,
