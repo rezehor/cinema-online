@@ -1,5 +1,6 @@
+import enum
 import uuid
-from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -134,7 +135,30 @@ class Movie(Base):
         secondary=MovieDirectors,
         back_populates="movies",
     )
+    likes = relationship(
+        "MovieLike",
+        back_populates="movies",
+        cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),
     )
+
+
+class LikeStatusEnum(str, enum.Enum):
+    LIKE = "like"
+    DISLIKE = "dislike"
+
+
+class MovieLike(Base):
+    __tablename__ = "movie_likes"
+
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True)
+    like_status = Column(Enum(LikeStatusEnum), nullable=False)
+
+    movies = relationship("Movie", back_populates="likes")
+    user = relationship("User", back_populates="likes")
+
+    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="unique_user_movie_like"),)
