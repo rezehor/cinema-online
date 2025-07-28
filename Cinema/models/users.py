@@ -8,15 +8,25 @@ from sqlalchemy import (
     Enum,
     Boolean,
     DateTime,
-
     func,
     ForeignKey,
-    Date
+    Date,
+    Table,
+    UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from .base import Base
 from ..security.passwords import hash_password, verify_password
 from ..validators import users
+
+
+UserFavoriteMovie = Table(
+    "user_favorite_movies",
+    Base.metadata,
+    Column("user_id", ForeignKey("user.id", ondelete="CASCADE"), primary_key=True),
+    Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+    UniqueConstraint("user_id", "movie_id", name="unique_user_favorite_movie")
+)
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -86,6 +96,12 @@ class User(Base):
     )
 
     likes = relationship("MovieLike", back_populates="user")
+
+    favorite_movies = relationship(
+        "Movie",
+        secondary=UserFavoriteMovie,
+        back_populates="users_favorite_movies",
+    )
 
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
