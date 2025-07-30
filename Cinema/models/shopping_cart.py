@@ -15,4 +15,17 @@ class Cart(Base):
     cart_items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
 
 
+class CartItem(Base):
+    __tablename__ = "cart_items"
 
+    id = Column(Integer, primary_key=True)
+    cart_id = Column(Integer, ForeignKey("carts.id"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id"), nullable=False)
+    added_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    cart = relationship("Cart", back_populates="cart_items")
+    movie = relationship("Movie", back_populates="cart_items")
+
+    __table_args__ = (
+        UniqueConstraint("cart_id", "movie_id", name="unique_cart_item_constraint"),
+    )
