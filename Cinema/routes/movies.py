@@ -9,9 +9,10 @@ from sqlalchemy.orm import selectinload
 from Cinema.config.dependencies import get_current_user
 from Cinema.database import get_db
 from Cinema.models import Movie, Certification, Genre, Star, Director, User
-from Cinema.models.movies import MovieLike, LikeStatusEnum
+from Cinema.models.movies import MovieLike, LikeStatusEnum, MovieRating
 from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
-    MovieUpdateSchema, MovieLikeResponseSchema, MovieLikeRequestSchema
+    MovieUpdateSchema, MovieLikeResponseSchema, MovieLikeRequestSchema, MovieRatingResponseSchema, \
+    MovieRatingRequestSchema
 
 router = APIRouter()
 
@@ -338,4 +339,52 @@ async def like_movie(
         likes=likes_count,
         dislikes=dislikes_count,
         user_status=final_user_like.like_status if final_user_like else None
+    )
+
+
+@router.post(
+    "/{movie_id}/rate",
+    response_model=MovieRatingResponseSchema,
+    summary="Rate a movie",
+)
+async def rate_movie(
+        movie_id: int,
+        rating_data: MovieRatingRequestSchema,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+) -> MovieRatingResponseSchema:
+    stmt = select(Movie).where(Movie.id == movie_id)
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found.")
+
+
+    existing_rating_stmt = select(MovieRating).where(
+        MovieRating.user_id == current_user.id,
+        MovieRating.movie_id == movie_id
+    )
+    existing_rating_result = await db.execute(existing_rating_stmt)
+    existing_rating = existing_rating_result.scalars().first()
+
+    if existing_rating:
+        existing_rating.rating = rating_data.rating
+    else:
+        new_rating = MovieRating(
+            user_id=current_user.id,
+            movie_id=movie_id,
+            rating=rating_data.rating
+        )
+        db.add(new_rating)
+
+    await db.commit()
+
+    avg_rating_stmt = select(func.avg(MovieRating.rating)).where(MovieRating.movie_id == movie_id)
+    avg_rating_result = await db.execute(avg_rating_stmt)
+    new_average_rating = avg_rating_result.scalar() or 0.0
+
+    return MovieRatingResponseSchema(
+        movie_id=movie_id,
+        new_average_rating=round(new_average_rating, 2),
+        user_rating=rating_data.rating
     )
