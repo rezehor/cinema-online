@@ -151,3 +151,7 @@ class MovieRatingResponseSchema(BaseModel):
     movie_id: int
     new_average_rating: float
     user_rating: int
+
+
+class GenreCreateSchema(BaseModel):
+    name: str
