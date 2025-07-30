@@ -160,7 +160,8 @@ async def get_movie_by_id(
     status_code=status.HTTP_201_CREATED)
 async def create_movie(
         movie_data: MovieCreateSchema,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(require_moderator_or_admin),
 ) -> MovieDetailSchema:
     existing_stmt = select(Movie).where(
         Movie.name == movie_data.name,
