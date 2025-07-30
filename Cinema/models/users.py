@@ -103,6 +103,8 @@ class User(Base):
         back_populates="users_favorite_movies",
     )
 
+    ratings = relationship("MovieRating", back_populates="user")
+
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
 
