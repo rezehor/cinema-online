@@ -268,7 +268,8 @@ async def delete_movie(
 async def update_movie(
         movie_id: int,
         movie_data: MovieUpdateSchema,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(require_moderator_or_admin)
 ):
     stmt = select(Movie).where(Movie.id == movie_id)
     result = await db.execute(stmt)
