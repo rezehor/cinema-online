@@ -138,6 +138,10 @@ async def get_movie_by_id(
 
     likes, dislikes = await get_movie_like_stats(movie_id, db)
 
+    avg_rating_stmt = select(func.avg(MovieRating.rating)).where(MovieRating.movie_id == movie_id)
+    avg_rating_result = await db.execute(avg_rating_stmt)
+    average_rating = avg_rating_result.scalar() or 0.0
+
     return MovieDetailSchema.model_validate({
         **movie.__dict__,
         "genres": movie.genres,
@@ -145,7 +149,8 @@ async def get_movie_by_id(
         "directors": movie.directors,
         "certification": movie.certification,
         "likes": likes,
-        "dislikes": dislikes
+        "dislikes": dislikes,
+        "average_rating": round(average_rating, 2)
     })
 
 

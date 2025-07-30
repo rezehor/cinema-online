@@ -65,7 +65,7 @@ class MovieDetailSchema(MovieBaseSchema):
     directors: List[DirectorSchema]
     likes: int
     dislikes: int
-    average_rating: Optional[float] = None
+    average_rating: float
 
     model_config = {"from_attributes": True}
 
