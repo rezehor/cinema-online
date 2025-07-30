@@ -6,9 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from Cinema.config.dependencies import get_current_user
+from Cinema.config.dependencies import get_current_user, require_moderator_or_admin
 from Cinema.database import get_db
-from Cinema.models import Movie, Certification, Genre, Star, Director, User
+from Cinema.models import Movie, Certification, Genre, Star, Director, User, UserGroupEnum
 from Cinema.models.movies import MovieLike, LikeStatusEnum, MovieRating
 from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
     MovieUpdateSchema, MovieLikeResponseSchema, MovieLikeRequestSchema, MovieRatingResponseSchema, \
@@ -247,7 +247,8 @@ async def create_movie(
 @router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_movie(
         movie_id: int,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(require_moderator_or_admin)
 ):
     stmt = select(Movie).where(Movie.id == movie_id)
     result = await db.execute(stmt)
