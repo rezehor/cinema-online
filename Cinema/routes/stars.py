@@ -52,3 +52,31 @@ async def create_star(
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="Invalid input data.")
+
+@router.put(
+    "/{genre_id}",
+    response_model=StarSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Update a genre",
+)
+async def update_star(
+        star_id: int,
+        data: StarCreateUpdateSchema,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(require_moderator_or_admin),
+) -> StarSchema:
+    stmt = select(Star).where(Star.id == star_id)
+    result = await db.execute(stmt)
+    star = result.scalars().first()
+
+    if not star:
+        raise HTTPException(status_code=404, detail="Star with the given ID was not found.")
+
+    star.name = data.name
+    try:
+        await db.commit()
+        await db.refresh(star)
+        return StarSchema.model_validate(star)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid input data.")
