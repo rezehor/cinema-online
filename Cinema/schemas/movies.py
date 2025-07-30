@@ -153,5 +153,5 @@ class MovieRatingResponseSchema(BaseModel):
     user_rating: int
 
 
-class GenreCreateSchema(BaseModel):
+class GenreCreateUpdateSchema(BaseModel):
     name: str

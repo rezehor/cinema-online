@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from Cinema.config.dependencies import require_moderator_or_admin
 from Cinema.database import get_db
 from Cinema.models import Genre, MovieGenres, User
-from Cinema.schemas.movies import GenreListResponseSchema, GenreWithCountSchema, GenreSchema, GenreCreateSchema
+from Cinema.schemas.movies import GenreListResponseSchema, GenreWithCountSchema, GenreSchema, GenreCreateUpdateSchema
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ async def get_genres_with_movie_count(db: AsyncSession = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
 )
 async def create_genre(
-        data: GenreCreateSchema,
+        data: GenreCreateUpdateSchema,
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(require_moderator_or_admin)
 ) -> GenreSchema:
@@ -64,3 +64,37 @@ async def create_genre(
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="Invalid input data.")
+
+
+@router.put(
+    "/{genre_id}",
+    response_model=GenreSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Update a genre",
+)
+async def update_genre(
+        genre_id: int,
+        data: GenreCreateUpdateSchema,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(require_moderator_or_admin),
+) -> GenreSchema:
+    stmt = select(Genre).where(Genre.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(status_code=404, detail="Genre with the given ID was not found.")
+
+    genre.name = data.name
+    try:
+        await db.commit()
+        await db.refresh(genre)
+        return GenreSchema(id=genre.id, name=genre.name)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid input data.")
+
+
+
+
+
