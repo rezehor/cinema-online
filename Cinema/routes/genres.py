@@ -95,6 +95,26 @@ async def update_genre(
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
 
+@router.delete(
+    "/{genre_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a genre",
+)
+async def delete_genre(
+        genre_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(require_moderator_or_admin),
+):
+    stmt = select(Genre).where(Genre.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(status_code=404, detail="Genre with the given ID was not found.")
+
+    await db.delete(genre)
+    await db.commit()
+
 
 
 
