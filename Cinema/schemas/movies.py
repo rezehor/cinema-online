@@ -147,3 +147,7 @@ class MovieRatingRequestSchema(BaseModel):
     rating: int = Field(ge=1, le=10)
 
 
+class MovieRatingResponseSchema(BaseModel):
+    movie_id: int
+    new_average_rating: float
+    user_rating: int
