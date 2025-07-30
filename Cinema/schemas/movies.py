@@ -155,3 +155,7 @@ class MovieRatingResponseSchema(BaseModel):
 
 class GenreCreateUpdateSchema(BaseModel):
     name: str
+
+
+class StarCreateUpdateSchema(BaseModel):
+    name: str
