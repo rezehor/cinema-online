@@ -146,12 +146,12 @@ class Movie(Base):
         secondary=UserFavoriteMovie,
         back_populates="favorite_movies"
     )
-
     ratings = relationship(
         "MovieRating",
         back_populates="movie",
         cascade="all, delete-orphan"
     )
+    cart_items = relationship("CartItem", back_populates="cart_items")
 
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),

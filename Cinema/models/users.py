@@ -105,6 +105,8 @@ class User(Base):
 
     ratings = relationship("MovieRating", back_populates="user")
 
+    cart = relationship("Cart", back_populates="user", uselist=False)
+
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
 
