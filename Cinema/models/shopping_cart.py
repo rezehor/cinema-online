@@ -24,7 +24,7 @@ class CartItem(Base):
     added_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     cart = relationship("Cart", back_populates="cart_items")
-    movies = relationship("Movie", back_populates="cart_items")
+    movie = relationship("Movie", back_populates="cart_items")
 
     __table_args__ = (
         UniqueConstraint("cart_id", "movie_id", name="unique_cart_item_constraint"),

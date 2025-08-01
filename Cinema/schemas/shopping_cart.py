@@ -13,4 +13,7 @@ class MovieInCartSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CartMoviesResponseSchema(BaseModel):
+    movies: List[MovieInCartSchema]
 
+    model_config = {"from_attributes": True}
