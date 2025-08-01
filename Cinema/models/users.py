@@ -102,6 +102,7 @@ class User(Base):
         secondary=UserFavoriteMovie,
         back_populates="users_favorite_movies",
     )
+    orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
 
     ratings = relationship("MovieRating", back_populates="user")
 
