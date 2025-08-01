@@ -151,7 +151,7 @@ class Movie(Base):
         back_populates="movie",
         cascade="all, delete-orphan"
     )
-    cart_items = relationship("CartItem", back_populates="cart_items")
+    cart_items = relationship("CartItem", back_populates="movies")
 
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),
