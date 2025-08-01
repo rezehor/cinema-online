@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
 from Cinema.models import Cart, CartItem, Movie
 from Cinema.config.dependencies import get_db, get_current_user
 from Cinema.models import User
+from Cinema.schemas.shopping_cart import CartMoviesResponseSchema
 
 router = APIRouter()
 
@@ -76,3 +79,24 @@ async def remove_movie_from_cart(
     await db.delete(cart_item)
     await db.commit()
 
+
+@router.get(
+    "/cart",
+    response_model=CartMoviesResponseSchema,
+    summary="Get list of movies in the user's cart"
+)
+async def get_movies_in_cart(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(
+        select(Cart)
+        .options(selectinload(Cart.cart_items).joinedload(CartItem.movie).joinedload(Movie.genres))
+        .where(Cart.user_id == current_user.id)
+    )
+
+    if not cart or not cart.cart_items:
+        return {"movies": []}
+
+    movies = [item.movie for item in cart.cart_items]
+    return CartMoviesResponseSchema(movies=movies)
