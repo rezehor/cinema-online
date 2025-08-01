@@ -54,5 +54,25 @@ async def add_movie_to_cart(
     return cart_item
 
 
+@router.delete("/remove/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_movie_from_cart(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(select(Cart).where(Cart.user_id == current_user.id))
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found.")
 
+    cart_item = await db.scalar(
+        select(CartItem).where(
+            CartItem.cart_id == cart.id,
+            CartItem.movie_id == movie_id
+        )
+    )
+    if not cart_item:
+        raise HTTPException(status_code=404, detail="Movie not found in your cart.")
+
+    await db.delete(cart_item)
+    await db.commit()
 
