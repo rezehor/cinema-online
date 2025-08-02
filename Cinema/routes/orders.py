@@ -265,3 +265,28 @@ async def stripe_webhook(
 
     return {"status": "success"}
 
+
+@router.post(
+    "/orders/{order_id}/cancel",
+    summary="Cancel an unpaid order",
+)
+async def cancel_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    order = await db.scalar(
+        select(Order).where(Order.id == order_id, Order.user_id == current_user.id)
+    )
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status != OrderStatusEnum.PENDING:
+        raise HTTPException(status_code=400, detail="Only pending orders can be canceled")
+
+    order.status = OrderStatusEnum.CANCELED
+    await db.commit()
+
+    return {"detail": "Order canceled successfully"}
+
