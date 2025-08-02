@@ -127,3 +127,60 @@ async def get_user_orders(
         orders=[OrderSchema.model_validate(order) for order in orders]
     )
 
+
+@router.post(
+    "/orders/{order_id}/pay",
+    summary="Redirect to Stripe Checkout"
+)
+async def initiate_payment(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    stmt = (
+        select(Order)
+        .options(selectinload(Order.order_items).joinedload(OrderItem.movie))
+        .where(Order.id == order_id, Order.user_id == current_user.id)
+    )
+    result = await db.execute(stmt)
+    order = result.scalars().first()
+
+    total = sum(item.price_at_order for item in order.order_items)
+    if order.total_amount != total:
+        raise HTTPException(status_code=400, detail="Invalid order total amount.")
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status != OrderStatusEnum.PENDING:
+        raise HTTPException(status_code=400, detail="Order is not pending")
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    line_items = [
+        {
+            "price_data": {
+                "currency": "usd",
+                "product_data": {"name": item.movie.name},
+                "unit_amount": int(item.price_at_order * 100),
+            },
+            "quantity": 1,
+        }
+        for item in order.order_items
+    ]
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=line_items,
+            mode="payment",
+            success_url=f"{settings.FRONTEND_URL}/payment-success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_URL}/payment-cancel",
+            metadata={"order_id": str(order.id), "user_id": str(current_user.id)},
+        )
+        return {"payment_url": session.url}
+    except stripe.error.CardError as e:
+        raise HTTPException(status_code=400, detail="Card declined. Try another method.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+
