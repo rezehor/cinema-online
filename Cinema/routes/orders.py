@@ -101,3 +101,29 @@ async def place_order(
     )
 
     return order_with_items
+
+
+@router.get(
+    "/orders/",
+    response_model=OrdersResponseSchema,
+    summary="Get all orders of current user"
+)
+async def get_user_orders(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Order)
+        .where(Order.user_id == current_user.id)
+        .options(
+            selectinload(Order.order_items).joinedload(OrderItem.movie)
+        )
+        .order_by(Order.created_at.desc())
+    )
+
+    orders = result.scalars().all()
+
+    return OrdersResponseSchema(
+        orders=[OrderSchema.model_validate(order) for order in orders]
+    )
+
