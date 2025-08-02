@@ -290,3 +290,74 @@ async def cancel_order(
 
     return {"detail": "Order canceled successfully"}
 
+
+@router.post("/orders/{order_id}/refund", summary="Request refund for a paid order")
+async def refund_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    order = await db.get(Order, order_id)
+
+    if not order or order.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status != OrderStatusEnum.PAID:
+        raise HTTPException(status_code=400, detail="Order is not paid or already refunded")
+
+    payment = (
+        await db.execute(
+            select(Payment)
+            .where(Payment.order_id == order.id)
+            .order_by(Payment.created_at.desc())
+        )
+    ).scalars().first()
+
+    if not payment or not payment.external_payment_id:
+        raise HTTPException(status_code=400, detail="No Stripe payment found")
+
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        refund = stripe.Refund.create(
+            payment_intent=payment.external_payment_id
+        )
+
+        # Update DB
+        order.status = OrderStatusEnum.REFUNDED
+        payment.status = PaymentStatusEnum.REFUNDED
+        await db.commit()
+
+        return {"message": "Refund initiated successfully."}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Refund failed: {str(e)}")
+
+
+@router.get("/admin/", response_model=List[AdminOrderSchema])
+async def admin_get_orders(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    user_id: Optional[int] = Query(None),
+    status: Optional[OrderStatusEnum] = Query(None),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+):
+    if current_user.group.name != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can see orders.")
+
+    stmt = select(Order).options(joinedload(Order.user))
+
+    if user_id:
+        stmt = stmt.where(Order.user_id == user_id)
+    if status:
+        stmt = stmt.where(Order.status == status)
+    if start_date:
+        stmt = stmt.where(Order.created_at >= start_date)
+    if end_date:
+        stmt = stmt.where(Order.created_at <= end_date)
+
+    stmt = stmt.order_by(Order.created_at.desc())
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
