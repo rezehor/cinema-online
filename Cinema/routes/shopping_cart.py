@@ -64,9 +64,18 @@ async def add_movie_to_cart(
     await db.commit()
     await db.refresh(cart_item)
 
-    return cart_item
     return {"message": "Movie added to cart successfully."}
 
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_cart(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(select(Cart).where(Cart.user_id == current_user.id))
+    if cart:
+        await db.execute(delete(CartItem).where(CartItem.cart_id == cart.id))
+        await db.commit()
 
 
 @router.delete("/remove/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -79,21 +88,15 @@ async def remove_movie_from_cart(
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found.")
 
-    cart_item = await db.scalar(
-        select(CartItem).where(
-            CartItem.cart_id == cart.id,
-            CartItem.movie_id == movie_id
-        )
+    await db.execute(
+        delete(CartItem)
+        .where(CartItem.cart_id == cart.id, CartItem.movie_id == movie_id)
     )
-    if not cart_item:
-        raise HTTPException(status_code=404, detail="Movie not found in your cart.")
-
-    await db.delete(cart_item)
     await db.commit()
 
 
 @router.get(
-    "/cart",
+    "/",
     response_model=CartMoviesResponseSchema,
     summary="Get list of movies in the user's cart"
 )
@@ -103,7 +106,11 @@ async def get_movies_in_cart(
 ):
     cart = await db.scalar(
         select(Cart)
-        .options(selectinload(Cart.cart_items).joinedload(CartItem.movie).joinedload(Movie.genres))
+        .options(
+            selectinload(Cart.cart_items)
+            .joinedload(CartItem.movie)
+            .joinedload(Movie.genres)
+        )
         .where(Cart.user_id == current_user.id)
     )
 
@@ -112,3 +119,10 @@ async def get_movies_in_cart(
 
     movies = [item.movie for item in cart.cart_items]
     return CartMoviesResponseSchema(movies=movies)
+    available_movies = [
+        item.movie for item in cart.cart_items
+        if item.movie and item.movie.is_available
+    ]
+
+    return CartMoviesResponseSchema(movies=available_movies)
+
