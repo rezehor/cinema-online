@@ -28,3 +28,7 @@ class OrderSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class OrdersResponseSchema(BaseModel):
+    orders: List[OrderSchema]
+
+
