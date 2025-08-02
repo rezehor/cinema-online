@@ -21,3 +21,12 @@ class CartMoviesResponseSchema(BaseModel):
 
 class UserCartSchema(BaseModel):
     user_id: int
+
+
+class AdminUserCartSchema(BaseModel):
+    movie_id: int
+    name: str
+    price: Decimal
+    user_id: int
+
+    model_config = {"from_attributes": True}
