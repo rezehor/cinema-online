@@ -30,3 +30,9 @@ class AdminUserCartSchema(BaseModel):
     user_id: int
 
     model_config = {"from_attributes": True}
+
+
+class AdminAllCartsResponseSchema(BaseModel):
+    carts: List[AdminUserCartSchema]
+
+    model_config = {"from_attributes": True}
