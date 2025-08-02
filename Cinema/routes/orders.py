@@ -184,3 +184,84 @@ async def initiate_payment(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
 
+
+@router.post("/webhooks/stripe", summary="Stripe webhook handler")
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str = Header(None),
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
+):
+    payload = await request.body()
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=stripe_signature,
+            secret=settings.STRIPE_WEBHOOK_SECRET
+        )
+    except (ValueError, stripe.error.SignatureVerificationError) as e:
+        logger.warning(f"Stripe webhook verification failed: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid Stripe signature or payload.")
+
+    event_type = event.get("type")
+    logger.info(f"Stripe event received: {event_type}")
+
+    if event_type == "checkout.session.completed":
+        session = event["data"]["object"]
+        try:
+            order_id = int(session["metadata"]["order_id"])
+        except (KeyError, ValueError):
+            logger.error("Missing or invalid order_id in session metadata.")
+            raise HTTPException(status_code=400, detail="Invalid session metadata.")
+
+        stmt = (
+            select(Order)
+            .where(Order.id == order_id)
+            .options(
+                selectinload(Order.order_items).joinedload(OrderItem.movie),
+                joinedload(Order.user)
+            )
+        )
+        result = await db.execute(stmt)
+        order = result.scalars().first()
+
+        if not order:
+            logger.warning(f"Order with ID {order_id} not found.")
+            raise HTTPException(status_code=404, detail="Order not found.")
+
+        if order.status != OrderStatusEnum.PENDING:
+            logger.info(f"Order {order.id} already processed. Skipping.")
+            return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "already_processed"})
+
+        try:
+            order.status = OrderStatusEnum.PAID
+
+            payment = Payment(
+                order_id=order.id,
+                user_id=order.user_id,
+                amount=Decimal(session["amount_total"]) / 100,
+                status=PaymentStatusEnum.SUCCESSFUL,
+                external_payment_id=session["payment_intent"]
+            )
+
+            db.add(payment)
+
+            await email_sender.send_order_confirmation_email(
+                email=order.user.email,
+                order_id=order.id
+            )
+
+            await db.commit()
+            logger.info(f"Order {order.id} marked as PAID and confirmation email sent.")
+
+        except Exception as e:
+            logger.exception(f"Failed to process payment for order {order_id}: {e}")
+            await db.rollback()
+            raise HTTPException(status_code=500, detail="Internal error while processing payment.")
+    else:
+        logger.info(f"Unhandled Stripe event type: {event_type}")
+        return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content={"status": "ignored"})
+
+    return {"status": "success"}
+
