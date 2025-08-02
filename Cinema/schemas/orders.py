@@ -32,3 +32,11 @@ class OrdersResponseSchema(BaseModel):
     orders: List[OrderSchema]
 
 
+class AdminOrderSchema(BaseModel):
+    id: int
+    user_id: int
+    status: str
+    total_amount: Decimal
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
