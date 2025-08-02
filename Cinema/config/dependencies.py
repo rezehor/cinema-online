@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from Cinema.config.settings import Settings, BaseAppSettings
 from Cinema.database import get_db
-from Cinema.models import User, UserGroupEnum
+from Cinema.models import User
 from Cinema.notifications.emails import EmailSender
 from Cinema.notifications.interfaces import EmailSenderInterface
 from Cinema.security.interfaces import JWTAuthManagerInterface
@@ -43,7 +43,8 @@ def get_accounts_email_notificator(
         activation_email_template_name=settings.ACTIVATION_EMAIL_TEMPLATE_NAME,
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
-        password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME
+        password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
+        order_confirmation_email_template_name=settings.ORDER_CONFIRMATION_EMAIL_TEMPLATE_NAME
     )
 
 def get_s3_storage_client(
