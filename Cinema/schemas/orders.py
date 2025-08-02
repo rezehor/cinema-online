@@ -18,3 +18,13 @@ class OrderItemSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class OrderSchema(BaseModel):
+    id: int
+    created_at: datetime
+    status: str
+    total_amount: Decimal
+    order_items: List[OrderItemSchema]
+
+    model_config = {"from_attributes": True}
+
+
