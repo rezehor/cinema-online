@@ -11,4 +11,10 @@ class OrderMovieSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class OrderItemSchema(BaseModel):
+    movie: OrderMovieSchema
+    price_at_order: Decimal
+
+    model_config = {"from_attributes": True}
+
 
