@@ -44,6 +44,7 @@ class MovieBaseSchema(BaseModel):
     gross: float = Field(ge=0)
     description: str = Field(min_length=1, max_length=1000)
     price: Decimal = Field(ge=0)
+    is_available: bool = Field(default=True)
 
     model_config = {"from_attributes": True}
 
@@ -56,13 +57,18 @@ class MovieBaseSchema(BaseModel):
         return value
 
 
-class MovieDetailSchema(MovieBaseSchema):
+class MovieDetailCreateSchema(MovieBaseSchema):
     id: int
     uuid: str
     certification: CertificationSchema
     genres: List[GenreSchema]
     stars: List[StarSchema]
     directors: List[DirectorSchema]
+
+    model_config = {"from_attributes": True}
+
+
+class MovieDetailResponseSchema(MovieDetailCreateSchema):
     likes: int
     dislikes: int
     average_rating: float

@@ -1,18 +1,27 @@
 from enum import Enum
 from typing import Optional
 from fastapi import APIRouter, Query, Depends, HTTPException, status
-from sqlalchemy import func, select, or_
+from sqlalchemy import func, select, or_, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from Cinema.config.dependencies import get_current_user, require_moderator_or_admin
 from Cinema.database import get_db
-from Cinema.models import Movie, Certification, Genre, Star, Director, User, UserGroupEnum
+from Cinema.models import Movie, Certification, Genre, Star, Director, User, OrderItem
 from Cinema.models.movies import MovieLike, LikeStatusEnum, MovieRating
-from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema, MovieCreateSchema, \
-    MovieUpdateSchema, MovieLikeResponseSchema, MovieLikeRequestSchema, MovieRatingResponseSchema, \
-    MovieRatingRequestSchema
+from Cinema.schemas.movies import (
+    MovieListResponseSchema,
+    MovieListItemSchema,
+    MovieCreateSchema,
+    MovieUpdateSchema,
+    MovieLikeResponseSchema,
+    MovieLikeRequestSchema,
+    MovieRatingResponseSchema,
+    MovieRatingRequestSchema,
+    MovieDetailResponseSchema,
+    MovieDetailCreateSchema
+)
 
 router = APIRouter()
 
@@ -115,11 +124,11 @@ async def get_movie_like_stats(movie_id: int, db: AsyncSession):
     return likes, dislikes
 
 
-@router.get("/{movie_id}", response_model=MovieDetailSchema)
+@router.get("/{movie_id}", response_model=MovieDetailResponseSchema)
 async def get_movie_by_id(
     movie_id: int,
     db: AsyncSession = Depends(get_db)
-) -> MovieDetailSchema:
+) -> MovieDetailResponseSchema:
     stmt = (
         select(Movie)
         .options(
@@ -142,7 +151,7 @@ async def get_movie_by_id(
     avg_rating_result = await db.execute(avg_rating_stmt)
     average_rating = avg_rating_result.scalar() or 0.0
 
-    return MovieDetailSchema.model_validate({
+    return MovieDetailResponseSchema.model_validate({
         **movie.__dict__,
         "genres": movie.genres,
         "stars": movie.stars,
@@ -156,13 +165,13 @@ async def get_movie_by_id(
 
 @router.post(
     "/",
-    response_model=MovieDetailSchema,
+    response_model=MovieDetailCreateSchema,
     status_code=status.HTTP_201_CREATED)
 async def create_movie(
         movie_data: MovieCreateSchema,
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(require_moderator_or_admin),
-) -> MovieDetailSchema:
+) -> MovieDetailCreateSchema:
     existing_stmt = select(Movie).where(
         Movie.name == movie_data.name,
         Movie.year == movie_data.year,
@@ -229,6 +238,7 @@ async def create_movie(
             gross=movie_data.gross,
             description=movie_data.description,
             price=movie_data.price,
+            is_available=movie_data.is_available,
             certification=certification,
             genres=genres,
             stars=stars,
@@ -238,7 +248,7 @@ async def create_movie(
         await db.commit()
         await db.refresh(movie, ["genres", "stars", "directors"])
 
-        return MovieDetailSchema.model_validate(movie)
+        return MovieDetailCreateSchema.model_validate(movie)
 
     except IntegrityError:
         await db.rollback()
@@ -251,12 +261,28 @@ async def delete_movie(
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(require_moderator_or_admin)
 ):
-    stmt = select(Movie).where(Movie.id == movie_id)
-    result = await db.execute(stmt)
-    movie = result.scalars().first()
+    movie = await db.get(Movie, movie_id)
 
     if not movie:
         raise HTTPException(status_code=404, detail="Movie with the given ID was not found.")
+
+    movie_in_order_stmt = select(exists().where(OrderItem.movie_id == movie_id))
+    movie_in_order_result = await db.execute(movie_in_order_stmt)
+
+    if movie_in_order_result.scalar():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete: This movie has already been purchased by users."
+        )
+
+    movie_in_cart_stmt = select(exists().where(OrderItem.movie_id == movie_id))
+    movie_in_cart_result = await db.execute(movie_in_cart_stmt)
+
+    if movie_in_cart_result.scalar():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete: Movie is currently present in user carts."
+        )
 
     await db.delete(movie)
     await db.commit()

@@ -1,6 +1,6 @@
 import enum
 import uuid
-from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint, Enum
+from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint, Enum, Boolean
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -115,6 +115,7 @@ class Movie(Base):
     gross = Column(Float, nullable=True)
     description = Column(Text, nullable=False)
     price = Column(DECIMAL(10, 2), nullable=False)
+    is_available = Column(Boolean, default=True)
     certification_id = Column(Integer, ForeignKey("certification.id"), nullable=False)
 
     certification = relationship(

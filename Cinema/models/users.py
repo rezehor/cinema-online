@@ -108,6 +108,8 @@ class User(Base):
 
     cart = relationship("Cart", back_populates="user", uselist=False)
 
+    payments = relationship("Payment", back_populates="user")
+
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
 
