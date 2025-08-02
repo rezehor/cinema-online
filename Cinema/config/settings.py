@@ -17,6 +17,7 @@ class BaseAppSettings(BaseSettings):
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
     PASSWORD_RESET_TEMPLATE_NAME: str = "password_reset_request.html"
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
+    ORDER_CONFIRMATION_EMAIL_TEMPLATE_NAME: str = "order_confirmation.html"
 
     LOGIN_TIME_DAYS: int = 7
 
@@ -35,6 +36,10 @@ class BaseAppSettings(BaseSettings):
     S3_STORAGE_ACCESS_KEY: str = "minioadmin"
     S3_STORAGE_SECRET_KEY: str = "minioadmin"
     S3_BUCKET_NAME: str = "theater-storage"
+
+    STRIPE_SECRET_KEY: str
+    STRIPE_WEBHOOK_SECRET: str
+    FRONTEND_URL: str = "http://localhost:8000"
 
     @property
     def S3_STORAGE_ENDPOINT(self) -> str:
