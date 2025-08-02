@@ -6,7 +6,7 @@ from Cinema.schemas.movies import GenreSchema
 class MovieInCartSchema(BaseModel):
     id: int
     name: str
-    price: float
+    price: Decimal
     year: int
     genres: List[GenreSchema]
 
@@ -17,3 +17,7 @@ class CartMoviesResponseSchema(BaseModel):
     movies: List[MovieInCartSchema]
 
     model_config = {"from_attributes": True}
+
+
+class UserCartSchema(BaseModel):
+    user_id: int
