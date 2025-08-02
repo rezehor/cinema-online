@@ -117,8 +117,6 @@ async def get_movies_in_cart(
     if not cart or not cart.cart_items:
         return {"movies": []}
 
-    movies = [item.movie for item in cart.cart_items]
-    return CartMoviesResponseSchema(movies=movies)
     available_movies = [
         item.movie for item in cart.cart_items
         if item.movie and item.movie.is_available
@@ -126,3 +124,36 @@ async def get_movies_in_cart(
 
     return CartMoviesResponseSchema(movies=available_movies)
 
+
+@router.get(
+    "/admin/",
+    response_model=AdminAllCartsResponseSchema,
+    summary="View all user carts",
+)
+async def get_all_user_carts(
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    if current_user.group.name != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can see carts.")
+
+    stmt = select(Cart).options(
+        selectinload(Cart.cart_items).joinedload(CartItem.movie),
+        joinedload(Cart.user)
+    )
+    result = await db.execute(stmt)
+    carts = result.scalars().all()
+
+    all_items = [
+        AdminUserCartSchema(
+            movie_id=item.movie.id,
+            name=item.movie.name,
+            price=item.movie.price,
+            user_id=cart.user_id
+        )
+        for cart in carts
+        for item in cart.cart_items
+        if item.movie
+    ]
+
+    return AdminAllCartsResponseSchema(carts=all_items)
