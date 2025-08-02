@@ -1,0 +1,103 @@
+import logging
+from datetime import datetime
+from decimal import Decimal
+from typing import List, Optional
+import stripe
+from fastapi import Depends, status, APIRouter, HTTPException, Header, Request, Query
+from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload, joinedload
+from starlette.responses import JSONResponse
+from Cinema.config.dependencies import get_current_user, get_accounts_email_notificator
+from Cinema.config.settings import settings
+from Cinema.database import get_db
+from Cinema.models import Cart, CartItem, Order, OrderStatusEnum, OrderItem, Payment, PaymentStatusEnum, User
+from Cinema.notifications.interfaces import EmailSenderInterface
+from Cinema.schemas.orders import OrderSchema, OrdersResponseSchema, AdminOrderSchema
+
+router = APIRouter()
+
+logger = logging.getLogger(__name__)
+
+
+@router.post("/", response_model=OrderSchema, status_code=status.HTTP_201_CREATED)
+async def place_order(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(
+        select(Cart)
+        .options(selectinload(Cart.cart_items).joinedload(CartItem.movie))
+        .where(Cart.user_id == current_user.id)
+    )
+
+    if not cart or not cart.cart_items:
+        raise HTTPException(status_code=400, detail="Your cart is empty.")
+
+    cart_items = cart.cart_items
+    movie_ids = [item.movie_id for item in cart_items]
+
+    purchased_stmt = (
+        select(OrderItem.movie_id)
+        .join(Order)
+        .where(
+            Order.user_id == current_user.id,
+            Order.status == OrderStatusEnum.PAID,
+            OrderItem.movie_id.in_(movie_ids)
+        )
+    )
+    purchased_ids = set((await db.execute(purchased_stmt)).scalars().all())
+
+    pending_stmt = (
+        select(OrderItem.movie_id)
+        .join(Order)
+        .where(
+            Order.user_id == current_user.id,
+            Order.status == OrderStatusEnum.PENDING,
+            OrderItem.movie_id.in_(movie_ids)
+        )
+    )
+    pending_ids = set((await db.execute(pending_stmt)).scalars().all())
+
+    valid_items = []
+    total = Decimal("0.00")
+
+    for item in cart_items:
+        if item.movie_id in purchased_ids:
+            continue
+        if item.movie_id in pending_ids:
+            continue
+        if not item.movie.is_available:
+            continue
+
+        valid_items.append(item)
+        total += item.movie.price
+
+    if not valid_items:
+        raise HTTPException(status_code=400, detail="No available items to order.")
+
+    order = Order(
+        user_id=current_user.id,
+        status=OrderStatusEnum.PENDING,
+        total_amount=total
+    )
+    db.add(order)
+    await db.flush()
+
+    for item in valid_items:
+        db.add(OrderItem(
+            order_id=order.id,
+            movie_id=item.movie.id,
+            price_at_order=item.movie.price
+        ))
+
+    await db.execute(delete(CartItem).where(CartItem.cart_id == cart.id))
+    await db.commit()
+
+    order_with_items = await db.scalar(
+        select(Order)
+        .options(selectinload(Order.order_items).joinedload(OrderItem.movie))
+        .where(Order.id == order.id)
+    )
+
+    return order_with_items
