@@ -1,11 +1,9 @@
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select, or_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
 from Cinema.config.dependencies import get_current_user
 from Cinema.database import get_db
 from Cinema.models import User, Movie, Star, Director, Genre
@@ -20,6 +18,7 @@ router = APIRouter()
 @router.post(
     "/{movie_id}",
     summary="Add a movie to favorites",
+    description="Adds a single movie to the currently authenticated user's list of favorites. If the movie is already a favorite, the operation succeeds without making changes.",
     status_code=status.HTTP_200_OK,
     response_model=MessageResponseSchema,
 )
@@ -56,6 +55,7 @@ async def add_movie_to_favorites(
 @router.delete(
     "/{movie_id}",
     summary="Remove a movie from favorites",
+    description="Removes a single movie from the currently authenticated user's list of favorites. If the movie is not in the list, the operation succeeds without making changes.",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def remove_movie_from_favorites(
@@ -84,7 +84,8 @@ async def remove_movie_from_favorites(
 @router.get(
     "/",
     response_model=MovieListResponseSchema,
-    summary="List, filter, sort, and search favorite movies",
+    summary="List a user's favorite movies",
+    description="Retrieves a paginated, filterable, and searchable list of the currently authenticated user's favorite movies.",
 )
 async def get_favorite_movies(
     page: int = Query(1, ge=1, description="Page number"),
