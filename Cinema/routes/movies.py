@@ -5,7 +5,6 @@ from sqlalchemy import func, select, or_, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
 from Cinema.config.dependencies import get_current_user, require_moderator_or_admin
 from Cinema.database import get_db
 from Cinema.models import Movie, Certification, Genre, Star, Director, User, OrderItem
@@ -37,7 +36,12 @@ class SortOrderEnum(str, Enum):
     desc = "desc"
 
 
-@router.get("/", response_model=MovieListResponseSchema)
+@router.get(
+    "/",
+    response_model=MovieListResponseSchema,
+    summary="List, filter, sort, and search movies",
+    description="Retrieves a paginated list of movies. Allows for filtering by year, genre, and rating, as well as sorting and full-text search across titles, descriptions, stars, and directors.",
+)
 async def get_movies(
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(10, ge=1, le=20, description="Number of movies per page"),
@@ -137,7 +141,12 @@ async def get_movie_like_stats(movie_id: int, db: AsyncSession):
     return likes, dislikes
 
 
-@router.get("/{movie_id}", response_model=MovieDetailResponseSchema)
+@router.get(
+    "/{movie_id}",
+    response_model=MovieDetailResponseSchema,
+    summary="Get a single movie by ID",
+    description="Retrieves detailed information for a specific movie, including its like/dislike counts and average rating.",
+)
 async def get_movie_by_id(
     movie_id: int, db: AsyncSession = Depends(get_db)
 ) -> MovieDetailResponseSchema:
@@ -182,12 +191,16 @@ async def get_movie_by_id(
 
 
 @router.post(
-    "/", response_model=MovieDetailCreateSchema, status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=MovieDetailCreateSchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new movie (Admin and moderator only)",
+    description="Allows an administrators and moderators to add a new movie to the database and link it to existing genres, stars, and directors."
 )
 async def create_movie(
     movie_data: MovieCreateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ) -> MovieDetailCreateSchema:
     existing_stmt = select(Movie).where(
         Movie.name == movie_data.name,
@@ -273,11 +286,16 @@ async def create_movie(
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
 
-@router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{movie_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a movie (Admin and moderator only)",
+    description="Allows an administrators and moderators to permanently delete a movie from the database."
+)
 async def delete_movie(
     movie_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ):
     movie = await db.get(Movie, movie_id)
 
@@ -310,12 +328,17 @@ async def delete_movie(
     return {"detail": "Movie deleted successfully."}
 
 
-@router.patch("/{movie_id}", status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{movie_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Update a movie (Admin and moderator only)",
+    description="Allows an administrators and moderators to perform a partial update on a movie's details and its relationships."
+)
 async def update_movie(
     movie_id: int,
     movie_data: MovieUpdateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ):
     stmt = select(Movie).where(Movie.id == movie_id)
     result = await db.execute(stmt)
@@ -343,6 +366,7 @@ async def update_movie(
     "/{movie_id}/like",
     response_model=MovieLikeResponseSchema,
     summary="Like or dislike a movie",
+    description="Allows an authenticated user to like, dislike, or remove their like/dislike from a movie. Submitting the same status again removes the vote.",
 )
 async def like_movie(
     movie_id: int,
@@ -401,6 +425,7 @@ async def like_movie(
     "/{movie_id}/rate",
     response_model=MovieRatingResponseSchema,
     summary="Rate a movie",
+    description="Allows an authenticated user to submit or update their rating for a movie on a scale of 1 to 10."
 )
 async def rate_movie(
     movie_id: int,
