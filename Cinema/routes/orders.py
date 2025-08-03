@@ -29,7 +29,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.post("/", response_model=OrderSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=OrderSchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="Place an order from the cart",
+    description="Creates a new order with a 'pending' status from the items in the user's cart. The cart is cleared upon successful order creation.",
+)
 async def place_order(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -113,9 +119,10 @@ async def place_order(
 
 
 @router.get(
-    "/orders/",
+    "/",
     response_model=OrdersResponseSchema,
-    summary="Get all orders of current user",
+    summary="Get the user's order history",
+    description="Retrieves a list of all past and present orders for the currently authenticated user.",
 )
 async def get_user_orders(
     db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)
@@ -134,7 +141,11 @@ async def get_user_orders(
     )
 
 
-@router.post("/orders/{order_id}/pay", summary="Redirect to Stripe Checkout")
+@router.post(
+    "/{order_id}/pay",
+    summary="Initiate payment for an order",
+    description="Creates a payment session with an external provider (Stripe) and returns a URL for the user to be redirected to for payment."
+)
 async def initiate_payment(
     order_id: int,
     db: AsyncSession = Depends(get_db),
@@ -190,7 +201,12 @@ async def initiate_payment(
         raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
 
 
-@router.post("/webhooks/stripe", summary="Stripe webhook handler")
+@router.post(
+    "/webhooks/stripe",
+    summary="Stripe webhook handler (for server-to-server communication)",
+    description="Receives events from Stripe to update the status of payments and orders. This endpoint is not intended to be called by users directly.",
+    tags=["Webhooks"],
+)
 async def stripe_webhook(
     request: Request,
     stripe_signature: str = Header(None),
@@ -280,7 +296,8 @@ async def stripe_webhook(
 
 @router.post(
     "/orders/{order_id}/cancel",
-    summary="Cancel an unpaid order",
+    summary="Cancel a pending order",
+    description="Allows a user to cancel an order that has a 'pending' status. Paid orders cannot be canceled via this endpoint."
 )
 async def cancel_order(
     order_id: int,
@@ -305,7 +322,11 @@ async def cancel_order(
     return {"detail": "Order canceled successfully"}
 
 
-@router.post("/orders/{order_id}/refund", summary="Request refund for a paid order")
+@router.post(
+    "/orders/{order_id}/refund",
+    summary="Request a refund for a paid order",
+    description="Allows an authenticated user to request a refund for an order that has a 'PAID' status."
+)
 async def refund_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
@@ -351,7 +372,12 @@ async def refund_order(
         raise HTTPException(status_code=500, detail=f"Refund failed: {str(e)}")
 
 
-@router.get("/admin/", response_model=List[AdminOrderSchema])
+@router.get(
+    "/admin/",
+    response_model=List[AdminOrderSchema],
+    summary="List and filter all user orders (Admin only)",
+    description="Provides administrators with a comprehensive list of all user orders. The list can be filtered by user, date range, and order status.",
+)
 async def admin_get_orders(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
