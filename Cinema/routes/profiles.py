@@ -27,7 +27,8 @@ router = APIRouter()
 @router.post(
     "/",
     response_model=ProfileResponseSchema,
-    summary="Create user profile",
+    summary="Create own user profile",
+    description="Allows an authenticated user to create their own profile. A user can only have one profile.",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_profile(
@@ -96,6 +97,7 @@ async def create_profile(
     "/me/",
     response_model=ProfileResponseSchema,
     summary="Get current user's profile",
+    description="Retrieves the profile data for the currently authenticated user."
 )
 async def get_own_profile(
     db: AsyncSession = Depends(get_db),
@@ -131,6 +133,7 @@ async def get_own_profile(
     "/",
     response_model=ProfileResponseSchema,
     summary="Update current user's profile",
+    description="Allows an authenticated user to perform a partial update of their own profile. Only the provided fields will be changed."
 )
 async def update_profile(
     db: AsyncSession = Depends(get_db),
@@ -198,8 +201,8 @@ async def update_profile(
 @router.get(
     "/{user_id}",
     response_model=ProfileResponseSchema,
-    summary="Get user's profile",
-    description=" Only admin and moderators can see their profile",
+    summary="Get a specific user's profile (Admin/Moderator only)",
+    description="Allows an administrator or moderator to retrieve the profile of any user by their ID.",
     status_code=status.HTTP_200_OK,
 )
 async def get_user_profile(
