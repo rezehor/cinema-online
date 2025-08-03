@@ -145,12 +145,12 @@ async def initiate_payment(
     result = await db.execute(stmt)
     order = result.scalars().first()
 
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
     total = sum(item.price_at_order for item in order.order_items)
     if order.total_amount != total:
         raise HTTPException(status_code=400, detail="Invalid order total amount.")
-
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
 
     if order.status != OrderStatusEnum.PENDING:
         raise HTTPException(status_code=400, detail="Order is not pending")
@@ -323,7 +323,6 @@ async def refund_order(
             payment_intent=payment.external_payment_id
         )
 
-        # Update DB
         order.status = OrderStatusEnum.REFUNDED
         payment.status = PaymentStatusEnum.REFUNDED
         await db.commit()
