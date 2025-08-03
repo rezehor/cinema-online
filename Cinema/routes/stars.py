@@ -12,7 +12,12 @@ from Cinema.schemas.movies import StarSchema, StarCreateUpdateSchema
 router = APIRouter()
 
 
-@router.get("/", response_model=List[StarSchema])
+@router.get(
+    "/",
+    response_model=List[StarSchema],
+    summary="Get a list of all stars",
+    description="Retrieves a list of all stars (actors) currently in the database, ordered alphabetically.",
+)
 async def get_all_stars(db: AsyncSession = Depends(get_db)) -> List[StarSchema]:
     stmt = select(Star).order_by(Star.name)
     result = await db.execute(stmt)
@@ -21,11 +26,17 @@ async def get_all_stars(db: AsyncSession = Depends(get_db)) -> List[StarSchema]:
     return [StarSchema.model_validate(star) for star in stars]
 
 
-@router.post("/", response_model=StarSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=StarSchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new star (Admin and moderator only)",
+    description="Allows administrators and moderators to add a new star (actor) to the database."
+)
 async def create_star(
     data: StarCreateUpdateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ) -> StarSchema:
     existing_stmt = select(Star).where(Star.name == data.name)
     existing_result = await db.execute(existing_stmt)
@@ -53,13 +64,14 @@ async def create_star(
     "/{star_id}",
     response_model=StarSchema,
     status_code=status.HTTP_200_OK,
-    summary="Update a star",
+    summary="Update a star's name (Admin and moderator only)",
+    description="Allows administrators and moderators to update the name of an existing star.",
 )
 async def update_star(
     star_id: int,
     data: StarCreateUpdateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ) -> StarSchema:
     stmt = select(Star).where(Star.id == star_id)
     result = await db.execute(stmt)
@@ -83,12 +95,13 @@ async def update_star(
 @router.delete(
     "/{star_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete a star",
+    summary="Delete a star (Admin and moderator only)",
+    description="Allows administrators and moderators to permanently delete a star from the database. This action may be restricted if the star is associated with existing movies.",
 )
 async def delete_star(
     star_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ):
     stmt = select(Star).where(Star.id == star_id)
     result = await db.execute(stmt)
