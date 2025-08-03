@@ -20,42 +20,50 @@ from Cinema.schemas.movies import (
     MovieRatingResponseSchema,
     MovieRatingRequestSchema,
     MovieDetailResponseSchema,
-    MovieDetailCreateSchema
+    MovieDetailCreateSchema,
 )
 
 router = APIRouter()
+
 
 class MovieSortByEnum(str, Enum):
     year = "year"
     imdb = "imdb"
     votes = "votes"
 
+
 class SortOrderEnum(str, Enum):
     asc = "asc"
     desc = "desc"
 
+
 @router.get("/", response_model=MovieListResponseSchema)
 async def get_movies(
-        page: int = Query(1, ge=1, description="Page number"),
-        per_page: int = Query(10, ge=1, le=20, description="Number of movies per page"),
-        db: AsyncSession = Depends(get_db),
-        # Filtering parameters
-        year: Optional[int] = Query(None, description="Filter by release year"),
-        imdb: Optional[float] = Query(None, ge=0, le=10, description="Filter by imdb rating"),
-        genre: Optional[str] = Query(None, description="Filter by genre name"),
-        # Sorting parameters
-        sort_by: Optional[MovieSortByEnum] = Query(None, description="Attribute to sort movies by"),
-        sort_order: SortOrderEnum = Query(SortOrderEnum.desc, description="Sort order: 'asc' or 'desc'"),
-        # Searching parameters
-        search: Optional[str] = Query(
-            None,
-            description="Search by movie title, description, star, or director name"
-        )
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(10, ge=1, le=20, description="Number of movies per page"),
+    db: AsyncSession = Depends(get_db),
+    # Filtering parameters
+    year: Optional[int] = Query(None, description="Filter by release year"),
+    imdb: Optional[float] = Query(
+        None, ge=0, le=10, description="Filter by imdb rating"
+    ),
+    genre: Optional[str] = Query(None, description="Filter by genre name"),
+    # Sorting parameters
+    sort_by: Optional[MovieSortByEnum] = Query(
+        None, description="Attribute to sort movies by"
+    ),
+    sort_order: SortOrderEnum = Query(
+        SortOrderEnum.desc, description="Sort order: 'asc' or 'desc'"
+    ),
+    # Searching parameters
+    search: Optional[str] = Query(
+        None, description="Search by movie title, description, star, or director name"
+    ),
 ) -> MovieListResponseSchema:
     stmt = select(Movie).options(
         selectinload(Movie.genres),
         selectinload(Movie.stars),
-        selectinload(Movie.directors)
+        selectinload(Movie.directors),
     )
     if year:
         stmt = stmt.filter(Movie.year == year)
@@ -72,12 +80,16 @@ async def get_movies(
 
     if search:
         search_term = f"%{search.lower()}%"
-        stmt = stmt.join(Movie.stars).join(Movie.directors).where(
-            or_(
-                func.lower(Movie.name).like(search_term),
-                func.lower(Movie.description).like(search_term),
-                func.lower(Star.name).like(search_term),
-                func.lower(Director.name).like(search_term)
+        stmt = (
+            stmt.join(Movie.stars)
+            .join(Movie.directors)
+            .where(
+                or_(
+                    func.lower(Movie.name).like(search_term),
+                    func.lower(Movie.description).like(search_term),
+                    func.lower(Star.name).like(search_term),
+                    func.lower(Director.name).like(search_term),
+                )
             )
         )
 
@@ -104,7 +116,11 @@ async def get_movies(
     response = MovieListResponseSchema(
         movies=movie_list,
         prev_page=f"/movies/?page={page - 1}&per_page={per_page}" if page > 1 else None,
-        next_page=f"/movies/?page={page + 1}&per_page={per_page}" if page < total_pages else None,
+        next_page=(
+            f"/movies/?page={page + 1}&per_page={per_page}"
+            if page < total_pages
+            else None
+        ),
         total_pages=total_pages,
         total_items=total_items,
     )
@@ -112,13 +128,10 @@ async def get_movies(
 
 
 async def get_movie_like_stats(movie_id: int, db: AsyncSession):
-    stmt = (
-        select(
-            func.count().filter(MovieLike.like_status == LikeStatusEnum.LIKE),
-            func.count().filter(MovieLike.like_status == LikeStatusEnum.DISLIKE)
-        )
-        .where(MovieLike.movie_id == movie_id)
-    )
+    stmt = select(
+        func.count().filter(MovieLike.like_status == LikeStatusEnum.LIKE),
+        func.count().filter(MovieLike.like_status == LikeStatusEnum.DISLIKE),
+    ).where(MovieLike.movie_id == movie_id)
     result = await db.execute(stmt)
     likes, dislikes = result.one()
     return likes, dislikes
@@ -126,8 +139,7 @@ async def get_movie_like_stats(movie_id: int, db: AsyncSession):
 
 @router.get("/{movie_id}", response_model=MovieDetailResponseSchema)
 async def get_movie_by_id(
-    movie_id: int,
-    db: AsyncSession = Depends(get_db)
+    movie_id: int, db: AsyncSession = Depends(get_db)
 ) -> MovieDetailResponseSchema:
     stmt = (
         select(Movie)
@@ -143,34 +155,39 @@ async def get_movie_by_id(
     movie = result.scalars().first()
 
     if not movie:
-        raise HTTPException(status_code=404, detail="Movie with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Movie with the given ID was not found."
+        )
 
     likes, dislikes = await get_movie_like_stats(movie_id, db)
 
-    avg_rating_stmt = select(func.avg(MovieRating.rating)).where(MovieRating.movie_id == movie_id)
+    avg_rating_stmt = select(func.avg(MovieRating.rating)).where(
+        MovieRating.movie_id == movie_id
+    )
     avg_rating_result = await db.execute(avg_rating_stmt)
     average_rating = avg_rating_result.scalar() or 0.0
 
-    return MovieDetailResponseSchema.model_validate({
-        **movie.__dict__,
-        "genres": movie.genres,
-        "stars": movie.stars,
-        "directors": movie.directors,
-        "certification": movie.certification,
-        "likes": likes,
-        "dislikes": dislikes,
-        "average_rating": round(average_rating, 2)
-    })
+    return MovieDetailResponseSchema.model_validate(
+        {
+            **movie.__dict__,
+            "genres": movie.genres,
+            "stars": movie.stars,
+            "directors": movie.directors,
+            "certification": movie.certification,
+            "likes": likes,
+            "dislikes": dislikes,
+            "average_rating": round(average_rating, 2),
+        }
+    )
 
 
 @router.post(
-    "/",
-    response_model=MovieDetailCreateSchema,
-    status_code=status.HTTP_201_CREATED)
+    "/", response_model=MovieDetailCreateSchema, status_code=status.HTTP_201_CREATED
+)
 async def create_movie(
-        movie_data: MovieCreateSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin),
+    movie_data: MovieCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ) -> MovieDetailCreateSchema:
     existing_stmt = select(Movie).where(
         Movie.name == movie_data.name,
@@ -182,12 +199,13 @@ async def create_movie(
     if existing_movie:
         raise HTTPException(
             status_code=409,
-            detail=f"Movie with the name {movie_data.name} already exists."
+            detail=f"Movie with the name {movie_data.name} already exists.",
         )
 
     try:
-        certification_stmt = (select(Certification)
-                              .where(Certification.name == movie_data.certification))
+        certification_stmt = select(Certification).where(
+            Certification.name == movie_data.certification
+        )
         certification_result = await db.execute(certification_stmt)
         certification = certification_result.scalars().first()
         if not certification:
@@ -242,7 +260,7 @@ async def create_movie(
             certification=certification,
             genres=genres,
             stars=stars,
-            directors=directors
+            directors=directors,
         )
         db.add(movie)
         await db.commit()
@@ -257,14 +275,16 @@ async def create_movie(
 
 @router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_movie(
-        movie_id: int,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin)
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ):
     movie = await db.get(Movie, movie_id)
 
     if not movie:
-        raise HTTPException(status_code=404, detail="Movie with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Movie with the given ID was not found."
+        )
 
     movie_in_order_stmt = select(exists().where(OrderItem.movie_id == movie_id))
     movie_in_order_result = await db.execute(movie_in_order_stmt)
@@ -272,7 +292,7 @@ async def delete_movie(
     if movie_in_order_result.scalar():
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete: This movie has already been purchased by users."
+            detail="Cannot delete: This movie has already been purchased by users.",
         )
 
     movie_in_cart_stmt = select(exists().where(OrderItem.movie_id == movie_id))
@@ -281,7 +301,7 @@ async def delete_movie(
     if movie_in_cart_result.scalar():
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete: Movie is currently present in user carts."
+            detail="Cannot delete: Movie is currently present in user carts.",
         )
 
     await db.delete(movie)
@@ -292,17 +312,19 @@ async def delete_movie(
 
 @router.patch("/{movie_id}", status_code=status.HTTP_200_OK)
 async def update_movie(
-        movie_id: int,
-        movie_data: MovieUpdateSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin)
+    movie_id: int,
+    movie_data: MovieUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ):
     stmt = select(Movie).where(Movie.id == movie_id)
     result = await db.execute(stmt)
     movie = result.scalars().first()
 
     if not movie:
-        raise HTTPException(status_code=404, detail="Movie with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Movie with the given ID was not found."
+        )
 
     for field, value in movie_data.model_dump(exclude_unset=True).items():
         setattr(movie, field, value)
@@ -323,19 +345,20 @@ async def update_movie(
     summary="Like or dislike a movie",
 )
 async def like_movie(
-        movie_id: int,
-        like_data: MovieLikeRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+    movie_id: int,
+    like_data: MovieLikeRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> MovieLikeResponseSchema:
 
-    movie = (await db.execute(select(Movie).where(Movie.id == movie_id))).scalars().first()
+    movie = (
+        (await db.execute(select(Movie).where(Movie.id == movie_id))).scalars().first()
+    )
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found.")
 
     existing_like_stmt = select(MovieLike).where(
-        MovieLike.user_id == current_user.id,
-        MovieLike.movie_id == movie_id
+        MovieLike.user_id == current_user.id, MovieLike.movie_id == movie_id
     )
     existing_like = (await db.execute(existing_like_stmt)).scalars().first()
 
@@ -349,19 +372,17 @@ async def like_movie(
         new_like = MovieLike(
             user_id=current_user.id,
             movie_id=movie_id,
-            like_status=like_data.like_status
+            like_status=like_data.like_status,
         )
         db.add(new_like)
 
     await db.commit()
 
     likes_count_stmt = select(func.count(MovieLike.user_id)).where(
-        MovieLike.movie_id == movie_id,
-        MovieLike.like_status == LikeStatusEnum.LIKE
+        MovieLike.movie_id == movie_id, MovieLike.like_status == LikeStatusEnum.LIKE
     )
     dislikes_count_stmt = select(func.count(MovieLike.user_id)).where(
-        MovieLike.movie_id == movie_id,
-        MovieLike.like_status == LikeStatusEnum.DISLIKE
+        MovieLike.movie_id == movie_id, MovieLike.like_status == LikeStatusEnum.DISLIKE
     )
 
     likes_count = (await db.execute(likes_count_stmt)).scalar_one()
@@ -372,7 +393,7 @@ async def like_movie(
     return MovieLikeResponseSchema(
         likes=likes_count,
         dislikes=dislikes_count,
-        user_status=final_user_like.like_status if final_user_like else None
+        user_status=final_user_like.like_status if final_user_like else None,
     )
 
 
@@ -382,10 +403,10 @@ async def like_movie(
     summary="Rate a movie",
 )
 async def rate_movie(
-        movie_id: int,
-        rating_data: MovieRatingRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+    movie_id: int,
+    rating_data: MovieRatingRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> MovieRatingResponseSchema:
     stmt = select(Movie).where(Movie.id == movie_id)
     result = await db.execute(stmt)
@@ -393,10 +414,8 @@ async def rate_movie(
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found.")
 
-
     existing_rating_stmt = select(MovieRating).where(
-        MovieRating.user_id == current_user.id,
-        MovieRating.movie_id == movie_id
+        MovieRating.user_id == current_user.id, MovieRating.movie_id == movie_id
     )
     existing_rating_result = await db.execute(existing_rating_stmt)
     existing_rating = existing_rating_result.scalars().first()
@@ -405,20 +424,20 @@ async def rate_movie(
         existing_rating.rating = rating_data.rating
     else:
         new_rating = MovieRating(
-            user_id=current_user.id,
-            movie_id=movie_id,
-            rating=rating_data.rating
+            user_id=current_user.id, movie_id=movie_id, rating=rating_data.rating
         )
         db.add(new_rating)
 
     await db.commit()
 
-    avg_rating_stmt = select(func.avg(MovieRating.rating)).where(MovieRating.movie_id == movie_id)
+    avg_rating_stmt = select(func.avg(MovieRating.rating)).where(
+        MovieRating.movie_id == movie_id
+    )
     avg_rating_result = await db.execute(avg_rating_stmt)
     new_average_rating = avg_rating_result.scalar() or 0.0
 
     return MovieRatingResponseSchema(
         movie_id=movie_id,
         new_average_rating=round(new_average_rating, 2),
-        user_rating=rating_data.rating
+        user_rating=rating_data.rating,
     )

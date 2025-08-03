@@ -12,7 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Date,
     Table,
-    UniqueConstraint
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from .base import Base
@@ -25,7 +25,7 @@ UserFavoriteMovie = Table(
     Base.metadata,
     Column("user_id", ForeignKey("user.id", ondelete="CASCADE"), primary_key=True),
     Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
-    UniqueConstraint("user_id", "movie_id", name="unique_user_favorite_movie")
+    UniqueConstraint("user_id", "movie_id", name="unique_user_favorite_movie"),
 )
 
 
@@ -57,42 +57,30 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=False)
     created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at = Column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        onupdate=func.now()
+        onupdate=func.now(),
     )
     group_id = Column(
-        Integer,
-        ForeignKey("usergroup.id", ondelete="CASCADE"),
-        nullable=False
+        Integer, ForeignKey("usergroup.id", ondelete="CASCADE"), nullable=False
     )
 
     group = relationship("UserGroup", back_populates="users")
     profile = relationship(
-        "UserProfile",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "UserProfile", back_populates="user", cascade="all, delete-orphan"
     )
     activation_token = relationship(
-        "ActivationToken",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "ActivationToken", back_populates="user", cascade="all, delete-orphan"
     )
     password_reset_token = relationship(
-        "PasswordResetToken",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
     )
     refresh_token = relationship(
-        "RefreshToken",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
     )
 
     likes = relationship("MovieLike", back_populates="user")
@@ -121,7 +109,9 @@ class User(Base):
 
     @property
     def password(self) -> None:
-        raise AttributeError("Password is write-only. Use the setter to set the password.")
+        raise AttributeError(
+            "Password is write-only. Use the setter to set the password."
+        )
 
     @password.setter
     def password(self, raw_password: str) -> None:
@@ -137,10 +127,7 @@ class UserProfile(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(
-        Integer,
-        ForeignKey("user.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True
     )
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
@@ -156,22 +143,14 @@ class TokenBaseModel(Base):
     __abstract__ = True
 
     id = Column(Integer, primary_key=True)
-    token = Column(
-        String,
-        nullable=False,
-        unique=True,
-        default=secrets.token_urlsafe
-    )
+    token = Column(String, nullable=False, unique=True, default=secrets.token_urlsafe)
     expires_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        default=lambda: datetime.now(timezone.utc) + timedelta(hours=24)
+        default=lambda: datetime.now(timezone.utc) + timedelta(hours=24),
     )
     user_id = Column(
-        Integer,
-        ForeignKey("user.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
 

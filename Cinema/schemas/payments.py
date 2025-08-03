@@ -12,6 +12,7 @@ class PaymentSchema(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
 class AdminPaymentSchema(PaymentSchema):
     user_id: int
 

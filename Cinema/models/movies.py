@@ -1,6 +1,18 @@
 import enum
 import uuid
-from sqlalchemy import Table, Column, ForeignKey, Integer, String, Float, Text, DECIMAL, UniqueConstraint, Enum, Boolean
+from sqlalchemy import (
+    Table,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Float,
+    Text,
+    DECIMAL,
+    UniqueConstraint,
+    Enum,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -12,12 +24,14 @@ MovieGenres = Table(
     Column(
         "movie_id",
         ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False
+        primary_key=True,
+        nullable=False,
     ),
     Column(
         "genre_id",
         ForeignKey("genres.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False
+        primary_key=True,
+        nullable=False,
     ),
 )
 
@@ -27,12 +41,14 @@ MovieStars = Table(
     Column(
         "movie_id",
         ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False
+        primary_key=True,
+        nullable=False,
     ),
     Column(
         "star_id",
         ForeignKey("stars.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False
+        primary_key=True,
+        nullable=False,
     ),
 )
 
@@ -43,11 +59,15 @@ MovieDirectors = Table(
     Column(
         "movie_id",
         ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False),
+        primary_key=True,
+        nullable=False,
+    ),
     Column(
         "director_id",
         ForeignKey("directors.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False),
+        primary_key=True,
+        nullable=False,
+    ),
 )
 
 
@@ -105,7 +125,9 @@ class Movie(Base):
     __tablename__ = "movies"
 
     id = Column(Integer, primary_key=True)
-    uuid = Column(String, nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
+    uuid = Column(
+        String, nullable=False, unique=True, default=lambda: str(uuid.uuid4())
+    )
     name = Column(String, nullable=False)
     year = Column(Integer, nullable=False)
     time = Column(Integer, nullable=False)
@@ -138,19 +160,13 @@ class Movie(Base):
         back_populates="movies",
     )
     likes = relationship(
-        "MovieLike",
-        back_populates="movies",
-        cascade="all, delete-orphan"
+        "MovieLike", back_populates="movies", cascade="all, delete-orphan"
     )
     users_favorite_movies = relationship(
-        "User",
-        secondary=UserFavoriteMovie,
-        back_populates="favorite_movies"
+        "User", secondary=UserFavoriteMovie, back_populates="favorite_movies"
     )
     ratings = relationship(
-        "MovieRating",
-        back_populates="movie",
-        cascade="all, delete-orphan"
+        "MovieRating", back_populates="movie", cascade="all, delete-orphan"
     )
     cart_items = relationship("CartItem", back_populates="movie")
 
@@ -169,24 +185,36 @@ class LikeStatusEnum(str, enum.Enum):
 class MovieLike(Base):
     __tablename__ = "movie_likes"
 
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
+    )
     like_status = Column(Enum(LikeStatusEnum), nullable=False)
 
     movies = relationship("Movie", back_populates="likes")
     user = relationship("User", back_populates="likes")
 
-    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="unique_user_movie_like"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="unique_user_movie_like"),
+    )
 
 
 class MovieRating(Base):
     __tablename__ = "movie_ratings"
 
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
+    )
     rating = Column(Integer, nullable=False)
 
     user = relationship("User", back_populates="ratings")
     movie = relationship("Movie", back_populates="ratings")
 
-    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="unique_user_movie_rating"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="unique_user_movie_rating"),
+    )

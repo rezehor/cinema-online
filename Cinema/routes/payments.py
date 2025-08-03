@@ -12,10 +12,10 @@ from Cinema.schemas.payments import PaymentSchema, AdminPaymentSchema
 
 router = APIRouter()
 
+
 @router.get("/", response_model=List[PaymentSchema])
 async def get_payment_history(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     stmt = (
         select(Payment)
@@ -38,7 +38,7 @@ async def list_all_payments(
     user_id: Optional[int] = Query(None),
     status: Optional[PaymentStatusEnum] = Query(None),
     start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None)
+    end_date: Optional[datetime] = Query(None),
 ):
     if current_user.group.name != "admin":
         raise HTTPException(status_code=403, detail="Only admins can see payments")

@@ -9,7 +9,7 @@ from Cinema.models import GenderEnum
 from Cinema.validation.profile import (
     validate_name,
     validate_gender,
-    validate_birth_date
+    validate_birth_date,
 )
 
 
@@ -101,4 +101,3 @@ class ProfileUpdateSchema(BaseModel):
                 raise ValueError("Info field cannot be empty or contain only spaces.")
             return cleaned
         return value
-

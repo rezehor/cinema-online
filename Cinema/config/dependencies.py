@@ -31,8 +31,9 @@ def get_jwt_auth_manager(
         algorithm=settings.JWT_SIGNING_ALGORITHM,
     )
 
+
 def get_accounts_email_notificator(
-    settings: BaseAppSettings = Depends(get_settings)
+    settings: BaseAppSettings = Depends(get_settings),
 ) -> EmailSenderInterface:
 
     return EmailSender(
@@ -46,21 +47,24 @@ def get_accounts_email_notificator(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
-        order_confirmation_email_template_name=settings.ORDER_CONFIRMATION_EMAIL_TEMPLATE_NAME
+        order_confirmation_email_template_name=settings.ORDER_CONFIRMATION_EMAIL_TEMPLATE_NAME,
     )
 
+
 def get_s3_storage_client(
-    settings: BaseAppSettings = Depends(get_settings)
+    settings: BaseAppSettings = Depends(get_settings),
 ) -> S3StorageInterface:
 
     return S3StorageClient(
         endpoint_url=settings.S3_STORAGE_ENDPOINT,
         access_key=settings.S3_STORAGE_ACCESS_KEY,
         secret_key=settings.S3_STORAGE_SECRET_KEY,
-        bucket_name=settings.S3_BUCKET_NAME
+        bucket_name=settings.S3_BUCKET_NAME,
     )
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login/")
+
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -81,10 +85,11 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    stmt = (select(User).options(
-        joinedload(User.group),
-            joinedload(User.favorite_movies))
-            .filter_by(id=user_id))
+    stmt = (
+        select(User)
+        .options(joinedload(User.group), joinedload(User.favorite_movies))
+        .filter_by(id=user_id)
+    )
     result = await db.execute(stmt)
     user = result.scalars().first()
 
@@ -115,7 +120,7 @@ def profile_data_from_form(
     gender: Optional[str] = Form(None),
     date_of_birth: Optional[str] = Form(None),
     info: Optional[str] = Form(None),
-    avatar: Union[UploadFile, str, None] = File(None)
+    avatar: Union[UploadFile, str, None] = File(None),
 ) -> Tuple[ProfileCreateSchema, Optional[UploadFile]]:
 
     gender = gender.strip() if gender and gender.strip() else None
@@ -128,7 +133,7 @@ def profile_data_from_form(
         except ValueError:
             raise HTTPException(
                 status_code=422,
-                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD"
+                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD",
             )
 
     if isinstance(avatar, str) and avatar.strip() == "":
@@ -139,7 +144,7 @@ def profile_data_from_form(
         last_name=last_name,
         gender=gender,
         date_of_birth=dob_value,
-        info=info
+        info=info,
     )
 
     if avatar and hasattr(avatar, "filename"):
@@ -154,7 +159,7 @@ def update_profile_data_from_form(
     gender: Optional[str] = Form(None),
     date_of_birth: Optional[str] = Form(None),
     info: Optional[str] = Form(None),
-    avatar: Union[UploadFile, str, None] = File(None)
+    avatar: Union[UploadFile, str, None] = File(None),
 ) -> Tuple[ProfileUpdateSchema, Optional[UploadFile]]:
 
     gender = gender.strip() if gender and gender.strip() else None
@@ -167,7 +172,7 @@ def update_profile_data_from_form(
         except ValueError:
             raise HTTPException(
                 status_code=422,
-                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD"
+                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD",
             )
 
     if isinstance(avatar, str) and avatar.strip() == "":
@@ -178,7 +183,7 @@ def update_profile_data_from_form(
         last_name=last_name,
         gender=gender,
         date_of_birth=dob_value,
-        info=info
+        info=info,
     )
 
     if avatar and hasattr(avatar, "filename") and avatar.filename.strip():

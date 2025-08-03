@@ -4,28 +4,39 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from Cinema.config.dependencies import get_s3_storage_client, get_current_user, profile_data_from_form, \
-    update_profile_data_from_form
+from Cinema.config.dependencies import (
+    get_s3_storage_client,
+    get_current_user,
+    profile_data_from_form,
+    update_profile_data_from_form,
+)
 from Cinema.database import get_db
 from Cinema.exceptions.storage import S3FileUploadError
 from Cinema.models import User, UserProfile, GenderEnum, UserGroupEnum
-from Cinema.schemas.profiles import ProfileCreateSchema, ProfileResponseSchema, ProfileUpdateSchema
+from Cinema.schemas.profiles import (
+    ProfileCreateSchema,
+    ProfileResponseSchema,
+    ProfileUpdateSchema,
+)
 from Cinema.storages.interfaces import S3StorageInterface
 
 
 router = APIRouter()
 
+
 @router.post(
     "/",
     response_model=ProfileResponseSchema,
     summary="Create user profile",
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_profile(
     db: AsyncSession = Depends(get_db),
     s3_client: S3StorageInterface = Depends(get_s3_storage_client),
-    form_data: Tuple[ProfileCreateSchema, Optional[UploadFile]] = Depends(profile_data_from_form),
-    current_user: User = Depends(get_current_user)
+    form_data: Tuple[ProfileCreateSchema, Optional[UploadFile]] = Depends(
+        profile_data_from_form
+    ),
+    current_user: User = Depends(get_current_user),
 ) -> ProfileResponseSchema:
 
     profile_data, avatar = form_data
@@ -36,7 +47,7 @@ async def create_profile(
     if existing_profile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already have a profile."
+            detail="You already have a profile.",
         )
 
     avatar_key = None
@@ -48,7 +59,7 @@ async def create_profile(
         except S3FileUploadError as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to upload avatar. Please try again later."
+                detail="Failed to upload avatar. Please try again later.",
             )
 
     new_profile = UserProfile(
@@ -58,7 +69,7 @@ async def create_profile(
         gender=cast(GenderEnum, profile_data.gender),
         date_of_birth=profile_data.date_of_birth,
         info=profile_data.info,
-        avatar=avatar_key
+        avatar=avatar_key,
     )
 
     db.add(new_profile)
@@ -77,7 +88,7 @@ async def create_profile(
         gender=new_profile.gender,
         date_of_birth=new_profile.date_of_birth,
         info=new_profile.info,
-        avatar=cast(HttpUrl, avatar_url)
+        avatar=cast(HttpUrl, avatar_url),
     )
 
 
@@ -97,8 +108,7 @@ async def get_own_profile(
 
     if not profile:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Profile not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found."
         )
 
     avatar_url = None
@@ -113,7 +123,7 @@ async def get_own_profile(
         gender=profile.gender,
         date_of_birth=profile.date_of_birth,
         info=profile.info,
-        avatar=cast(HttpUrl, avatar_url) if avatar_url else None
+        avatar=cast(HttpUrl, avatar_url) if avatar_url else None,
     )
 
 
@@ -125,8 +135,10 @@ async def get_own_profile(
 async def update_profile(
     db: AsyncSession = Depends(get_db),
     s3_client: S3StorageInterface = Depends(get_s3_storage_client),
-    form_data: Tuple[ProfileUpdateSchema, Optional[UploadFile]] = Depends(update_profile_data_from_form),
-    current_user: User = Depends(get_current_user)
+    form_data: Tuple[ProfileUpdateSchema, Optional[UploadFile]] = Depends(
+        update_profile_data_from_form
+    ),
+    current_user: User = Depends(get_current_user),
 ) -> ProfileResponseSchema:
     profile_data, avatar = form_data
 
@@ -151,7 +163,9 @@ async def update_profile(
     if avatar:
         avatar_bytes = await avatar.read()
         if not avatar_bytes:
-            raise HTTPException(status_code=400, detail="Uploaded avatar file is empty.")
+            raise HTTPException(
+                status_code=400, detail="Uploaded avatar file is empty."
+            )
 
         ext = avatar.filename.split(".")[-1]
         avatar_key = f"avatars/{current_user.id}_{uuid.uuid4().hex}.{ext}"
@@ -177,7 +191,7 @@ async def update_profile(
         gender=profile.gender,
         date_of_birth=profile.date_of_birth,
         info=profile.info,
-        avatar=cast(HttpUrl, avatar_url) if avatar_url else None
+        avatar=cast(HttpUrl, avatar_url) if avatar_url else None,
     )
 
 
@@ -189,13 +203,16 @@ async def update_profile(
     status_code=status.HTTP_200_OK,
 )
 async def get_user_profile(
-        user_id: int,
-        db: AsyncSession = Depends(get_db),
-        s3_client: S3StorageInterface = Depends(get_s3_storage_client),
-        current_user: User = Depends(get_current_user)
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    s3_client: S3StorageInterface = Depends(get_s3_storage_client),
+    current_user: User = Depends(get_current_user),
 ) -> ProfileResponseSchema:
 
-    if current_user.group.name not in [UserGroupEnum.ADMIN.value, UserGroupEnum.MODERATOR.value]:
+    if current_user.group.name not in [
+        UserGroupEnum.ADMIN.value,
+        UserGroupEnum.MODERATOR.value,
+    ]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view other users' profiles.",
@@ -207,8 +224,7 @@ async def get_user_profile(
 
     if not profile:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Profile not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found."
         )
 
     avatar_url = None
@@ -223,5 +239,5 @@ async def get_user_profile(
         gender=profile.gender,
         date_of_birth=profile.date_of_birth,
         info=profile.info,
-        avatar=cast(HttpUrl, avatar_url) if avatar_url else None
+        avatar=cast(HttpUrl, avatar_url) if avatar_url else None,
     )

@@ -20,8 +20,9 @@ SessionLocal = sessionmaker(bind=engine)
 celery_app = Celery(
     "tasks",
     broker=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0",
-    backend=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0"
+    backend=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0",
 )
+
 
 @celery_app.task
 def delete_expired_tokens():
@@ -37,6 +38,7 @@ def delete_expired_tokens():
     except Exception as e:
         logger.error(f"Failed to delete expired tokens: {e}", exc_info=True)
         raise
+
 
 celery_app.conf.beat_schedule = {
     "delete-expired-tokens-every-ten-minutes": {

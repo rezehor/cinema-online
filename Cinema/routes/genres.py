@@ -5,7 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from Cinema.config.dependencies import require_moderator_or_admin
 from Cinema.database import get_db
 from Cinema.models import Genre, MovieGenres, User
-from Cinema.schemas.movies import GenreListResponseSchema, GenreWithCountSchema, GenreSchema, GenreCreateUpdateSchema
+from Cinema.schemas.movies import (
+    GenreListResponseSchema,
+    GenreWithCountSchema,
+    GenreSchema,
+    GenreCreateUpdateSchema,
+)
 
 router = APIRouter()
 
@@ -13,7 +18,11 @@ router = APIRouter()
 @router.get("/", response_model=GenreListResponseSchema)
 async def get_genres_with_movie_count(db: AsyncSession = Depends(get_db)):
     stmt = (
-        select(Genre.id, Genre.name, func.count(MovieGenres.c.movie_id).label("movie_count"))
+        select(
+            Genre.id,
+            Genre.name,
+            func.count(MovieGenres.c.movie_id).label("movie_count"),
+        )
         .join(MovieGenres, MovieGenres.c.genre_id == Genre.id)
         .group_by(Genre.id)
         .order_by(Genre.name)
@@ -22,7 +31,9 @@ async def get_genres_with_movie_count(db: AsyncSession = Depends(get_db)):
     genres = result.all()
 
     genre_list = [
-        GenreWithCountSchema(id=genre.id, name=genre.name, movie_count=genre.movie_count)
+        GenreWithCountSchema(
+            id=genre.id, name=genre.name, movie_count=genre.movie_count
+        )
         for genre in genres
     ]
 
@@ -35,9 +46,9 @@ async def get_genres_with_movie_count(db: AsyncSession = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
 )
 async def create_genre(
-        data: GenreCreateUpdateSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin)
+    data: GenreCreateUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ) -> GenreSchema:
     existing_stmt = select(Genre).where(Genre.name == data.name)
     existing_result = await db.execute(existing_stmt)
@@ -45,8 +56,7 @@ async def create_genre(
 
     if existing_genre:
         raise HTTPException(
-            status_code=409,
-            detail=f"Genre with the name {data.name} already exists."
+            status_code=409, detail=f"Genre with the name {data.name} already exists."
         )
 
     try:
@@ -73,17 +83,19 @@ async def create_genre(
     summary="Update a genre",
 )
 async def update_genre(
-        genre_id: int,
-        data: GenreCreateUpdateSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin),
+    genre_id: int,
+    data: GenreCreateUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ) -> GenreSchema:
     stmt = select(Genre).where(Genre.id == genre_id)
     result = await db.execute(stmt)
     genre = result.scalars().first()
 
     if not genre:
-        raise HTTPException(status_code=404, detail="Genre with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Genre with the given ID was not found."
+        )
 
     genre.name = data.name
     try:
@@ -101,20 +113,18 @@ async def update_genre(
     summary="Delete a genre",
 )
 async def delete_genre(
-        genre_id: int,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin),
+    genre_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ):
     stmt = select(Genre).where(Genre.id == genre_id)
     result = await db.execute(stmt)
     genre = result.scalars().first()
 
     if not genre:
-        raise HTTPException(status_code=404, detail="Genre with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Genre with the given ID was not found."
+        )
 
     await db.delete(genre)
     await db.commit()
-
-
-
-

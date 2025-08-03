@@ -21,15 +21,11 @@ async def get_all_stars(db: AsyncSession = Depends(get_db)) -> List[StarSchema]:
     return [StarSchema.model_validate(star) for star in stars]
 
 
-@router.post(
-    "/",
-    response_model=StarSchema,
-    status_code=status.HTTP_201_CREATED
-)
+@router.post("/", response_model=StarSchema, status_code=status.HTTP_201_CREATED)
 async def create_star(
-        data: StarCreateUpdateSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin),
+    data: StarCreateUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ) -> StarSchema:
     existing_stmt = select(Star).where(Star.name == data.name)
     existing_result = await db.execute(existing_stmt)
@@ -37,8 +33,7 @@ async def create_star(
 
     if existing_star:
         raise HTTPException(
-            status_code=409,
-            detail=f"Star with the name {data.name} already exists."
+            status_code=409, detail=f"Star with the name {data.name} already exists."
         )
 
     try:
@@ -53,6 +48,7 @@ async def create_star(
         await db.rollback()
         raise HTTPException(status_code=400, detail="Invalid input data.")
 
+
 @router.put(
     "/{star_id}",
     response_model=StarSchema,
@@ -60,17 +56,19 @@ async def create_star(
     summary="Update a star",
 )
 async def update_star(
-        star_id: int,
-        data: StarCreateUpdateSchema,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin),
+    star_id: int,
+    data: StarCreateUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ) -> StarSchema:
     stmt = select(Star).where(Star.id == star_id)
     result = await db.execute(stmt)
     star = result.scalars().first()
 
     if not star:
-        raise HTTPException(status_code=404, detail="Star with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Star with the given ID was not found."
+        )
 
     star.name = data.name
     try:
@@ -88,16 +86,18 @@ async def update_star(
     summary="Delete a star",
 )
 async def delete_star(
-        star_id: int,
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(require_moderator_or_admin),
+    star_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_moderator_or_admin),
 ):
     stmt = select(Star).where(Star.id == star_id)
     result = await db.execute(stmt)
     star = result.scalars().first()
 
     if not star:
-        raise HTTPException(status_code=404, detail="Star with the given ID was not found.")
+        raise HTTPException(
+            status_code=404, detail="Star with the given ID was not found."
+        )
 
     await db.delete(star)
     await db.commit()
