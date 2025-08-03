@@ -146,3 +146,42 @@ def profile_data_from_form(
         return profile, avatar
 
     return profile, None
+
+
+def update_profile_data_from_form(
+    first_name: Optional[str] = Form(None),
+    last_name: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
+    date_of_birth: Optional[str] = Form(None),
+    info: Optional[str] = Form(None),
+    avatar: Union[UploadFile, str, None] = File(None)
+) -> Tuple[ProfileUpdateSchema, Optional[UploadFile]]:
+
+    gender = gender.strip() if gender and gender.strip() else None
+    info = info.strip() if info and info.strip() else None
+
+    dob_value = None
+    if date_of_birth:
+        try:
+            dob_value = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD"
+            )
+
+    if isinstance(avatar, str) and avatar.strip() == "":
+        avatar = None
+
+    profile = ProfileUpdateSchema(
+        first_name=first_name,
+        last_name=last_name,
+        gender=gender,
+        date_of_birth=dob_value,
+        info=info
+    )
+
+    if avatar and hasattr(avatar, "filename") and avatar.filename.strip():
+        return profile, avatar
+
+    return profile, None
