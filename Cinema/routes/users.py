@@ -34,7 +34,6 @@ from Cinema.schemas.users import (
     PasswordResetRequestSchema,
     PasswordResetCompleteRequestSchema,
     UserLoginResponseSchema,
-    UserLoginRequestSchema,
     TokenRefreshResponseSchema,
     TokenRefreshRequestSchema,
     ResendActivationRequestSchema,
@@ -49,6 +48,8 @@ router = APIRouter()
     "/register/",
     response_model=UserRegistrationResponseSchema,
     status_code=status.HTTP_201_CREATED,
+    summary="Register a new user",
+    description="Create a new, inactive user account. An activation email will be sent to the provided email address."
 )
 async def register_user(
     user_data: UserRegistrationRequestSchema,
@@ -104,7 +105,12 @@ async def register_user(
 
 
 @router.post(
-    "/activate/", response_model=MessageResponseSchema, status_code=status.HTTP_200_OK
+    "/activate/",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Activate user account",
+    description="Activate a user's account using the token "
+                "sent to their email. The token is valid for 24 hours."
 )
 async def activate_user(
     activation_data: UserActivationRequestSchema,
@@ -162,6 +168,10 @@ async def activate_user(
     "/resend-activation-token",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK,
+    summary="Resend activation token",
+    description="If the original activation token has expired, "
+                "a user can request a new one. A new link, "
+                "valid for 24 hours, will be sent to their email."
 )
 async def resend_activation_token(
     request_data: ResendActivationRequestSchema,
@@ -197,6 +207,8 @@ async def resend_activation_token(
     "/password-reset/request/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK,
+    summary="Request a password reset",
+    description="Initiates the password reset process. An email with a reset link will be sent to the user if their account exists.",
 )
 async def request_password_reset_token(
     request_data: PasswordResetRequestSchema,
@@ -237,6 +249,8 @@ async def request_password_reset_token(
     "/password-reset/complete/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK,
+    summary="Complete password reset",
+    description="Set a new password using the token sent to the user's email."
 )
 async def password_reset_complete(
     data: PasswordResetCompleteRequestSchema,
@@ -294,6 +308,8 @@ async def password_reset_complete(
     "/login/",
     response_model=UserLoginResponseSchema,
     status_code=status.HTTP_201_CREATED,
+    summary="User login",
+    description="Authenticate a user with their email and password. Returns JWT access and refresh tokens upon success.",
 )
 async def login_user(
     username: str = Form(...),
@@ -349,6 +365,8 @@ async def login_user(
     "/logout/",
     status_code=status.HTTP_200_OK,
     response_model=MessageResponseSchema,
+    summary="User logout",
+    description="Logs a user out by invalidating their refresh token. The client is responsible for deleting the tokens from storage."
 )
 async def logout_user(
     data: TokenRefreshRequestSchema,
@@ -366,6 +384,8 @@ async def logout_user(
     "/refresh/",
     response_model=TokenRefreshResponseSchema,
     status_code=status.HTTP_200_OK,
+    summary="Refresh access token",
+    description="Use a valid refresh token to obtain a new access token."
 )
 async def refresh_access_token(
     token_data: TokenRefreshRequestSchema,
@@ -407,8 +427,8 @@ async def refresh_access_token(
 
 @router.delete(
     "/{user_id}",
-    summary="Delete user's profile",
-    description=" Only admin can delete user's profile",
+    summary="Delete a user (Admin only)",
+    description="Allows an administrator to delete a user account. This action is irreversible.",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_user(
@@ -438,6 +458,7 @@ async def delete_user(
     "/change-password/",
     response_model=MessageResponseSchema,
     summary="Change current user's password",
+    description="Allows an authenticated user to change their own password by providing the old password and a new one. This action invalidates all other active sessions."
 )
 async def change_password(
     request_data: ChangePasswordRequestSchema,
