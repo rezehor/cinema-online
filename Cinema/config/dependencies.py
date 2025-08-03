@@ -1,5 +1,6 @@
-from typing import Optional
-from fastapi import Depends, HTTPException, status
+from datetime import datetime
+from typing import Optional, Tuple, Union
+from fastapi import Depends, HTTPException, status, Form, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from Cinema.database import get_db
 from Cinema.models import User
 from Cinema.notifications.emails import EmailSender
 from Cinema.notifications.interfaces import EmailSenderInterface
+from Cinema.schemas.profiles import ProfileCreateSchema, ProfileUpdateSchema
 from Cinema.security.interfaces import JWTAuthManagerInterface
 from Cinema.security.token_manager import JWTAuthManager
 from Cinema.storages.interfaces import S3StorageInterface
@@ -105,3 +107,42 @@ def require_moderator_or_admin(current_user: User = Depends(get_current_user)) -
             detail="You do not have permission to perform this action.",
         )
     return current_user
+
+
+def profile_data_from_form(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    gender: Optional[str] = Form(None),
+    date_of_birth: Optional[str] = Form(None),
+    info: Optional[str] = Form(None),
+    avatar: Union[UploadFile, str, None] = File(None)
+) -> Tuple[ProfileCreateSchema, Optional[UploadFile]]:
+
+    gender = gender.strip() if gender and gender.strip() else None
+    info = info.strip() if info and info.strip() else None
+
+    dob_value = None
+    if date_of_birth:
+        try:
+            dob_value = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD"
+            )
+
+    if isinstance(avatar, str) and avatar.strip() == "":
+        avatar = None
+
+    profile = ProfileCreateSchema(
+        first_name=first_name,
+        last_name=last_name,
+        gender=gender,
+        date_of_birth=dob_value,
+        info=info
+    )
+
+    if avatar and hasattr(avatar, "filename"):
+        return profile, avatar
+
+    return profile, None
