@@ -17,7 +17,8 @@ router = APIRouter()
 @router.post(
     "/{movie_id}",
     status_code=status.HTTP_201_CREATED,
-    summary="Add a movie to the current user's cart",
+    summary="Add a movie to the cart",
+    description="Adds a single movie to the user's cart. Returns an error if the movie has already been purchased or is already in the cart.",
 )
 async def add_movie_to_cart(
     movie_id: int,
@@ -67,7 +68,12 @@ async def add_movie_to_cart(
     return {"message": "Movie added to cart successfully."}
 
 
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a movie from the cart",
+    description="Removes a single movie from the user's shopping cart.",
+)
 async def clear_cart(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -78,7 +84,12 @@ async def clear_cart(
         await db.commit()
 
 
-@router.delete("/remove/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/remove/{movie_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Clear the entire cart",
+    description="Removes all items from the currently authenticated user's shopping cart.",
+)
 async def remove_movie_from_cart(
     movie_id: int,
     db: AsyncSession = Depends(get_db),
@@ -99,7 +110,8 @@ async def remove_movie_from_cart(
 @router.get(
     "/",
     response_model=CartMoviesResponseSchema,
-    summary="Get list of movies in the user's cart",
+    summary="Get the user's cart",
+    description="Retrieves a list of all movies currently in the authenticated user's shopping cart.",
 )
 async def get_movies_in_cart(
     db: AsyncSession = Depends(get_db),
@@ -128,7 +140,8 @@ async def get_movies_in_cart(
 @router.get(
     "/admin/",
     response_model=AdminAllCartsResponseSchema,
-    summary="View all user carts",
+    summary="View all user carts (Admin only)",
+    description="Allows an administrator to retrieve a list of all user carts and their contents.",
 )
 async def get_all_user_carts(
     db: AsyncSession = Depends(get_db),
