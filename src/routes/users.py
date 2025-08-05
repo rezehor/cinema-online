@@ -8,16 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from starlette import status
 
-from Cinema.config.dependencies import (
+from config.dependencies import (
     get_settings,
     get_jwt_auth_manager,
     get_accounts_email_notificator,
     get_current_user,
 )
-from Cinema.config.settings import Settings
-from Cinema.database import get_db
-from Cinema.exceptions.security import BaseSecurityError
-from Cinema.models import (
+from config.settings import Settings
+from database import get_db
+from exceptions.security import BaseSecurityError
+from models import (
     User,
     UserGroup,
     UserGroupEnum,
@@ -25,8 +25,8 @@ from Cinema.models import (
     PasswordResetToken,
     RefreshToken,
 )
-from Cinema.notifications.interfaces import EmailSenderInterface
-from Cinema.schemas.users import (
+from notifications.interfaces import EmailSenderInterface
+from schemas.users import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
     MessageResponseSchema,
@@ -39,7 +39,7 @@ from Cinema.schemas.users import (
     ResendActivationRequestSchema,
     ChangePasswordRequestSchema,
 )
-from Cinema.security.interfaces import JWTAuthManagerInterface
+from security.interfaces import JWTAuthManagerInterface
 
 router = APIRouter()
 
@@ -49,7 +49,7 @@ router = APIRouter()
     response_model=UserRegistrationResponseSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
-    description="Create a new, inactive user account. An activation email will be sent to the provided email address."
+    description="Create a new, inactive user account. An activation email will be sent to the provided email address.",
 )
 async def register_user(
     user_data: UserRegistrationRequestSchema,
@@ -110,7 +110,7 @@ async def register_user(
     status_code=status.HTTP_200_OK,
     summary="Activate user account",
     description="Activate a user's account using the token "
-                "sent to their email. The token is valid for 24 hours."
+    "sent to their email. The token is valid for 24 hours.",
 )
 async def activate_user(
     activation_data: UserActivationRequestSchema,
@@ -170,8 +170,8 @@ async def activate_user(
     status_code=status.HTTP_200_OK,
     summary="Resend activation token",
     description="If the original activation token has expired, "
-                "a user can request a new one. A new link, "
-                "valid for 24 hours, will be sent to their email."
+    "a user can request a new one. A new link, "
+    "valid for 24 hours, will be sent to their email.",
 )
 async def resend_activation_token(
     request_data: ResendActivationRequestSchema,
@@ -250,7 +250,7 @@ async def request_password_reset_token(
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK,
     summary="Complete password reset",
-    description="Set a new password using the token sent to the user's email."
+    description="Set a new password using the token sent to the user's email.",
 )
 async def password_reset_complete(
     data: PasswordResetCompleteRequestSchema,
@@ -366,7 +366,7 @@ async def login_user(
     status_code=status.HTTP_200_OK,
     response_model=MessageResponseSchema,
     summary="User logout",
-    description="Logs a user out by invalidating their refresh token. The client is responsible for deleting the tokens from storage."
+    description="Logs a user out by invalidating their refresh token. The client is responsible for deleting the tokens from storage.",
 )
 async def logout_user(
     data: TokenRefreshRequestSchema,
@@ -385,7 +385,7 @@ async def logout_user(
     response_model=TokenRefreshResponseSchema,
     status_code=status.HTTP_200_OK,
     summary="Refresh access token",
-    description="Use a valid refresh token to obtain a new access token."
+    description="Use a valid refresh token to obtain a new access token.",
 )
 async def refresh_access_token(
     token_data: TokenRefreshRequestSchema,
@@ -458,7 +458,7 @@ async def delete_user(
     "/change-password/",
     response_model=MessageResponseSchema,
     summary="Change current user's password",
-    description="Allows an authenticated user to change their own password by providing the old password and a new one. This action invalidates all other active sessions."
+    description="Allows an authenticated user to change their own password by providing the old password and a new one. This action invalidates all other active sessions.",
 )
 async def change_password(
     request_data: ChangePasswordRequestSchema,

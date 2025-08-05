@@ -2,8 +2,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import jwt, JWTError, ExpiredSignatureError
 
-from Cinema.exceptions.security import TokenExpiredError, InvalidTokenError
-from Cinema.security.interfaces import JWTAuthManagerInterface
+from exceptions.security import TokenExpiredError, InvalidTokenError
+from security.interfaces import JWTAuthManagerInterface
 
 
 class JWTAuthManager(JWTAuthManagerInterface):

@@ -15,9 +15,9 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from .base import Base
-from ..security.passwords import hash_password, verify_password
-from ..validators import users
+from models.base import Base
+from security.passwords import hash_password, verify_password
+from validators import users
 
 
 UserFavoriteMovie = Table(
