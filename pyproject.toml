@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "src"
+version = "0.1.0"
+description = "Cinema online"
+authors = ["rezehor <timurkhvat@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.116.1"
+SQLAlchemy = "2.0.41"
+pytest = "^8.3.4"
+pydantic-settings = "^2.10.1"
+tqdm = "^4.67.1"
+uvicorn = "^0.35.0"
+psycopg2-binary = "^2.9.10"
+alembic = "^1.16.4"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-jose = {extras = ["cryptography"], version = "^3.5.0"}
+email-validator = "^2.2.0"
+bcrypt = "4.0.1"
+jinja2 = "^3.1.6"
+botocore = "^1.38.27"
+pillow = "^11.3.0"
+python-multipart = "^0.0.20"
+aiosmtplib = "^4.0.1"
+asyncpg = "^0.30.0"
+aiosqlite = "^0.21.0"
+aioboto3 = "^15.0.0"
+gunicorn = "^23.0.0"
+stripe = "12.4.0"
+starlette = "0.47.1"
+aiohttp = "3.12.14"
+certifi = "2025.7.14"
+redis = "^6.2.0"
+celery = "^5.5.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
