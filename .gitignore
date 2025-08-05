@@ -262,6 +262,6 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all
-alembic/versions
-online_cinema.db
 celerybeat-schedule*
+*.pyc
+postgres_theater_data

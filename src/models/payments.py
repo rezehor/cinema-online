@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from Cinema.models import Base
+from models import Base
 
 
 class PaymentStatusEnum(str, enum.Enum):

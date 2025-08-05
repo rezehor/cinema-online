@@ -4,21 +4,21 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from Cinema.config.dependencies import (
+from config.dependencies import (
     get_s3_storage_client,
     get_current_user,
     profile_data_from_form,
     update_profile_data_from_form,
 )
-from Cinema.database import get_db
-from Cinema.exceptions.storage import S3FileUploadError
-from Cinema.models import User, UserProfile, GenderEnum, UserGroupEnum
-from Cinema.schemas.profiles import (
+from database import get_db
+from exceptions.storage import S3FileUploadError
+from models import User, UserProfile, GenderEnum, UserGroupEnum
+from schemas.profiles import (
     ProfileCreateSchema,
     ProfileResponseSchema,
     ProfileUpdateSchema,
 )
-from Cinema.storages.interfaces import S3StorageInterface
+from storages.interfaces import S3StorageInterface
 
 
 router = APIRouter()
@@ -97,7 +97,7 @@ async def create_profile(
     "/me/",
     response_model=ProfileResponseSchema,
     summary="Get current user's profile",
-    description="Retrieves the profile data for the currently authenticated user."
+    description="Retrieves the profile data for the currently authenticated user.",
 )
 async def get_own_profile(
     db: AsyncSession = Depends(get_db),
@@ -133,7 +133,7 @@ async def get_own_profile(
     "/",
     response_model=ProfileResponseSchema,
     summary="Update current user's profile",
-    description="Allows an authenticated user to perform a partial update of their own profile. Only the provided fields will be changed."
+    description="Allows an authenticated user to perform a partial update of their own profile. Only the provided fields will be changed.",
 )
 async def update_profile(
     db: AsyncSession = Depends(get_db),

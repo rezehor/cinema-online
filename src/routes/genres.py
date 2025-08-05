@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from Cinema.config.dependencies import require_moderator_or_admin
-from Cinema.database import get_db
-from Cinema.models import Genre, MovieGenres, User
-from Cinema.schemas.movies import (
+from config.dependencies import require_moderator_or_admin
+from database import get_db
+from models import Genre, MovieGenres, User
+from schemas.movies import (
     GenreListResponseSchema,
     GenreWithCountSchema,
     GenreSchema,
@@ -15,7 +15,12 @@ from Cinema.schemas.movies import (
 router = APIRouter()
 
 
-@router.get("/", response_model=GenreListResponseSchema)
+@router.get(
+    "/",
+    response_model=GenreListResponseSchema,
+    summary="List all genres with movie counts",
+    description="Retrieves a list of all movie genres, each accompanied by a count of how many movies belong to that genre.",
+)
 async def get_genres_with_movie_count(db: AsyncSession = Depends(get_db)):
     stmt = (
         select(
@@ -44,11 +49,13 @@ async def get_genres_with_movie_count(db: AsyncSession = Depends(get_db)):
     "/",
     response_model=GenreSchema,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a new genre (Admin and moderator only)",
+    description="Allows administrators and moderators to add a new genre to the database.",
 )
 async def create_genre(
     data: GenreCreateUpdateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ) -> GenreSchema:
     existing_stmt = select(Genre).where(Genre.name == data.name)
     existing_result = await db.execute(existing_stmt)
@@ -80,13 +87,14 @@ async def create_genre(
     "/{genre_id}",
     response_model=GenreSchema,
     status_code=status.HTTP_200_OK,
-    summary="Update a genre",
+    summary="Update a genre's name (Admin and moderator only)",
+    description="Allows administrators and moderators to update the name of an existing genre.",
 )
 async def update_genre(
     genre_id: int,
     data: GenreCreateUpdateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ) -> GenreSchema:
     stmt = select(Genre).where(Genre.id == genre_id)
     result = await db.execute(stmt)
@@ -110,12 +118,13 @@ async def update_genre(
 @router.delete(
     "/{genre_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete a genre",
+    summary="Delete a genre (Admin and moderator only)",
+    description="Allows administrators and moderators to permanently delete a genre from the database. This action may be restricted if the genre is associated with existing movies.",
 )
 async def delete_genre(
     genre_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_moderator_or_admin),
+    _: User = Depends(require_moderator_or_admin),
 ):
     stmt = select(Genre).where(Genre.id == genre_id)
     result = await db.execute(stmt)

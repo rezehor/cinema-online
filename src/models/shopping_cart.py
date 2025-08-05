@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, func, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from Cinema.models import Base
+from models import Base
 
 
 class Cart(Base):

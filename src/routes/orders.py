@@ -8,10 +8,10 @@ from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 from starlette.responses import JSONResponse
-from Cinema.config.dependencies import get_current_user, get_accounts_email_notificator
-from Cinema.config.settings import settings
-from Cinema.database import get_db
-from Cinema.models import (
+from config.dependencies import get_current_user, get_accounts_email_notificator
+from config.settings import settings
+from database import get_db
+from models import (
     Cart,
     CartItem,
     Order,
@@ -21,8 +21,8 @@ from Cinema.models import (
     PaymentStatusEnum,
     User,
 )
-from Cinema.notifications.interfaces import EmailSenderInterface
-from Cinema.schemas.orders import OrderSchema, OrdersResponseSchema, AdminOrderSchema
+from notifications.interfaces import EmailSenderInterface
+from schemas.orders import OrderSchema, OrdersResponseSchema, AdminOrderSchema
 
 router = APIRouter()
 
@@ -144,7 +144,7 @@ async def get_user_orders(
 @router.post(
     "/{order_id}/pay",
     summary="Initiate payment for an order",
-    description="Creates a payment session with an external provider (Stripe) and returns a URL for the user to be redirected to for payment."
+    description="Creates a payment session with an external provider (Stripe) and returns a URL for the user to be redirected to for payment.",
 )
 async def initiate_payment(
     order_id: int,
@@ -205,7 +205,6 @@ async def initiate_payment(
     "/webhooks/stripe",
     summary="Stripe webhook handler (for server-to-server communication)",
     description="Receives events from Stripe to update the status of payments and orders. This endpoint is not intended to be called by users directly.",
-    tags=["Webhooks"],
 )
 async def stripe_webhook(
     request: Request,
@@ -297,7 +296,7 @@ async def stripe_webhook(
 @router.post(
     "/orders/{order_id}/cancel",
     summary="Cancel a pending order",
-    description="Allows a user to cancel an order that has a 'pending' status. Paid orders cannot be canceled via this endpoint."
+    description="Allows a user to cancel an order that has a 'pending' status. Paid orders cannot be canceled via this endpoint.",
 )
 async def cancel_order(
     order_id: int,
@@ -325,7 +324,7 @@ async def cancel_order(
 @router.post(
     "/orders/{order_id}/refund",
     summary="Request a refund for a paid order",
-    description="Allows an authenticated user to request a refund for an order that has a 'PAID' status."
+    description="Allows an authenticated user to request a refund for an order that has a 'PAID' status.",
 )
 async def refund_order(
     order_id: int,

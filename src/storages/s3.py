@@ -6,8 +6,8 @@ from botocore.exceptions import (
     HTTPClientError,
     ConnectionError,
 )
-from Cinema.exceptions.storage import S3ConnectionError, S3FileUploadError
-from Cinema.storages.interfaces import S3StorageInterface
+from exceptions.storage import S3ConnectionError, S3FileUploadError
+from storages.interfaces import S3StorageInterface
 
 
 class S3StorageClient(S3StorageInterface):

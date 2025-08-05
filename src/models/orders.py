@@ -3,7 +3,7 @@ import enum
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Enum, DECIMAL, func
 from sqlalchemy.orm import relationship
 
-from Cinema.models import Base
+from models import Base
 
 
 class OrderStatusEnum(str, enum.Enum):
@@ -22,7 +22,7 @@ class Order(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     status = Column(
-        Enum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.PENDING
+        Enum(OrderStatusEnum, name="statusenum"), nullable=False, default=OrderStatusEnum.PENDING
     )
     total_amount = Column(DECIMAL(10, 2), nullable=True)
 

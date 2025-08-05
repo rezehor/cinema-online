@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 
-from Cinema.models.movies import LikeStatusEnum
+from models.movies import LikeStatusEnum
 
 
 class GenreSchema(BaseModel):

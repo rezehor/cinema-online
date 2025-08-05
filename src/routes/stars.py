@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from Cinema.config.dependencies import require_moderator_or_admin
-from Cinema.database import get_db
-from Cinema.models import User, Star
-from Cinema.schemas.movies import StarSchema, StarCreateUpdateSchema
+from config.dependencies import require_moderator_or_admin
+from database import get_db
+from models import User, Star
+from schemas.movies import StarSchema, StarCreateUpdateSchema
 
 router = APIRouter()
 
@@ -31,7 +31,7 @@ async def get_all_stars(db: AsyncSession = Depends(get_db)) -> List[StarSchema]:
     response_model=StarSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new star (Admin and moderator only)",
-    description="Allows administrators and moderators to add a new star (actor) to the database."
+    description="Allows administrators and moderators to add a new star (actor) to the database.",
 )
 async def create_star(
     data: StarCreateUpdateSchema,

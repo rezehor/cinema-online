@@ -5,11 +5,11 @@ from sqlalchemy import func, select, or_, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from Cinema.config.dependencies import get_current_user, require_moderator_or_admin
-from Cinema.database import get_db
-from Cinema.models import Movie, Certification, Genre, Star, Director, User, OrderItem
-from Cinema.models.movies import MovieLike, LikeStatusEnum, MovieRating
-from Cinema.schemas.movies import (
+from config.dependencies import get_current_user, require_moderator_or_admin
+from database import get_db
+from models import Movie, Certification, Genre, Star, Director, User, OrderItem
+from models.movies import MovieLike, LikeStatusEnum, MovieRating
+from schemas.movies import (
     MovieListResponseSchema,
     MovieListItemSchema,
     MovieCreateSchema,
@@ -195,7 +195,7 @@ async def get_movie_by_id(
     response_model=MovieDetailCreateSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new movie (Admin and moderator only)",
-    description="Allows an administrators and moderators to add a new movie to the database and link it to existing genres, stars, and directors."
+    description="Allows an administrators and moderators to add a new movie to the database and link it to existing genres, stars, and directors.",
 )
 async def create_movie(
     movie_data: MovieCreateSchema,
@@ -290,7 +290,7 @@ async def create_movie(
     "/{movie_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a movie (Admin and moderator only)",
-    description="Allows an administrators and moderators to permanently delete a movie from the database."
+    description="Allows an administrators and moderators to permanently delete a movie from the database.",
 )
 async def delete_movie(
     movie_id: int,
@@ -332,7 +332,7 @@ async def delete_movie(
     "/{movie_id}",
     status_code=status.HTTP_200_OK,
     summary="Update a movie (Admin and moderator only)",
-    description="Allows an administrators and moderators to perform a partial update on a movie's details and its relationships."
+    description="Allows an administrators and moderators to perform a partial update on a movie's details and its relationships.",
 )
 async def update_movie(
     movie_id: int,
@@ -425,7 +425,7 @@ async def like_movie(
     "/{movie_id}/rate",
     response_model=MovieRatingResponseSchema,
     summary="Rate a movie",
-    description="Allows an authenticated user to submit or update their rating for a movie on a scale of 1 to 10."
+    description="Allows an authenticated user to submit or update their rating for a movie on a scale of 1 to 10.",
 )
 async def rate_movie(
     movie_id: int,

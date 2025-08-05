@@ -3,8 +3,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader
-from Cinema.exceptions.email import BaseEmailError
-from Cinema.notifications.interfaces import EmailSenderInterface
+from exceptions.email import BaseEmailError
+from notifications.interfaces import EmailSenderInterface
 
 
 class EmailSender(EmailSenderInterface):

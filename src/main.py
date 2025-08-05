@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from Cinema.routes import (
+from routes import (
     movies,
     users,
     profiles,

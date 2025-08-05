@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from Cinema.config.dependencies import get_current_user
-from Cinema.database import get_db
-from Cinema.models import User, Payment, PaymentStatusEnum
-from Cinema.schemas.payments import PaymentSchema, AdminPaymentSchema
+from config.dependencies import get_current_user
+from database import get_db
+from models import User, Payment, PaymentStatusEnum
+from schemas.payments import PaymentSchema, AdminPaymentSchema
 
 router = APIRouter()
 

@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload, joinedload
-from Cinema.models import Cart, CartItem, Movie, OrderItem, Order, OrderStatusEnum
-from Cinema.config.dependencies import get_db, get_current_user
-from Cinema.models import User
-from Cinema.schemas.shopping_cart import (
+from models import Cart, CartItem, Movie, OrderItem, Order, OrderStatusEnum
+from config.dependencies import get_db, get_current_user
+from models import User
+from schemas.shopping_cart import (
     CartMoviesResponseSchema,
     AdminAllCartsResponseSchema,
     AdminUserCartSchema,

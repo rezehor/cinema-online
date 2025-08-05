@@ -1,3 +1,4 @@
+from functools import cached_property
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,7 +11,7 @@ class BaseAppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE_PATH, extra="ignore")
 
     PATH_TO_EMAIL_TEMPLATES_DIR: str = str(
-        BASE_DIR / "Cinema" / "notifications" / "templates"
+        BASE_DIR / "fastapi" / "notifications" / "templates"
     )
     ACTIVATION_EMAIL_TEMPLATE_NAME: str = "activation_request.html"
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
@@ -30,7 +31,7 @@ class BaseAppSettings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
-    S3_STORAGE_HOST: str = "localhost"
+    S3_STORAGE_HOST: str = "minio"
     S3_STORAGE_PORT: int = 9000
     S3_STORAGE_ACCESS_KEY: str = "minioadmin"
     S3_STORAGE_SECRET_KEY: str = "minioadmin"
@@ -46,10 +47,30 @@ class BaseAppSettings(BaseSettings):
 
 
 class Settings(BaseAppSettings):
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_DB_PORT: int = 5432
+    POSTGRES_DB: str
+
 
     SECRET_KEY_ACCESS: str
     SECRET_KEY_REFRESH: str
     JWT_SIGNING_ALGORITHM: str
+
+    @cached_property
+    def DATABASE_URL_ASYNC(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @cached_property
+    def DATABASE_URL_SYNC(self) -> str:
+        return (
+            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
+        )
 
 
 settings = Settings()

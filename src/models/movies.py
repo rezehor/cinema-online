@@ -15,8 +15,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from .base import Base
-from .users import UserFavoriteMovie
+from models.base import Base
+from models.users import UserFavoriteMovie
 
 MovieGenres = Table(
     "movie_genres",

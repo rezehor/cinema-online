@@ -3,7 +3,7 @@ from datetime import date
 from PIL import Image
 from io import BytesIO
 from fastapi import UploadFile
-from Cinema.models.users import GenderEnum
+from models.users import GenderEnum
 
 
 def validate_name(name: str):

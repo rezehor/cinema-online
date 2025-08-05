@@ -6,16 +6,16 @@ from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from Cinema.config.settings import Settings, BaseAppSettings
-from Cinema.database import get_db
-from Cinema.models import User
-from Cinema.notifications.emails import EmailSender
-from Cinema.notifications.interfaces import EmailSenderInterface
-from Cinema.schemas.profiles import ProfileCreateSchema, ProfileUpdateSchema
-from Cinema.security.interfaces import JWTAuthManagerInterface
-from Cinema.security.token_manager import JWTAuthManager
-from Cinema.storages.interfaces import S3StorageInterface
-from Cinema.storages.s3 import S3StorageClient
+from config.settings import Settings, BaseAppSettings
+from database import get_db
+from models import User, GenderEnum
+from notifications.emails import EmailSender
+from notifications.interfaces import EmailSenderInterface
+from schemas.profiles import ProfileCreateSchema, ProfileUpdateSchema
+from security.interfaces import JWTAuthManagerInterface
+from security.token_manager import JWTAuthManager
+from storages.interfaces import S3StorageInterface
+from storages.s3 import S3StorageClient
 
 
 def get_settings() -> Settings:
@@ -122,8 +122,14 @@ def profile_data_from_form(
     info: Optional[str] = Form(None),
     avatar: Union[UploadFile, str, None] = File(None),
 ) -> Tuple[ProfileCreateSchema, Optional[UploadFile]]:
+    try:
+        gender = GenderEnum(gender.strip().lower()) if gender else None
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail="Gender must be 'man' or 'woman'. Please provide a valid value."
+        )
 
-    gender = gender.strip() if gender and gender.strip() else None
     info = info.strip() if info and info.strip() else None
 
     dob_value = None
@@ -162,31 +168,41 @@ def update_profile_data_from_form(
     avatar: Union[UploadFile, str, None] = File(None),
 ) -> Tuple[ProfileUpdateSchema, Optional[UploadFile]]:
 
-    gender = gender.strip() if gender and gender.strip() else None
-    info = info.strip() if info and info.strip() else None
+    def clean_empty(value: Optional[str]) -> Optional[str]:
+        return value.strip() if value and value.strip() else None
+
+    if isinstance(avatar, str) and avatar.strip() == "":
+        avatar = None
+
+    gender_enum = None
+    gender = clean_empty(gender)
+    if gender:
+        try:
+            gender_enum = GenderEnum(gender.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail="Gender must be 'man' or 'woman'. Please provide a valid value."
+            )
 
     dob_value = None
+    date_of_birth = clean_empty(date_of_birth)
     if date_of_birth:
         try:
             dob_value = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
         except ValueError:
             raise HTTPException(
                 status_code=422,
-                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD",
+                detail="Invalid date format for date_of_birth. Use YYYY-MM-DD.",
             )
 
-    if isinstance(avatar, str) and avatar.strip() == "":
-        avatar = None
-
-    profile = ProfileUpdateSchema(
-        first_name=first_name,
-        last_name=last_name,
-        gender=gender,
-        date_of_birth=dob_value,
-        info=info,
+    schema = ProfileUpdateSchema(
+        first_name=clean_empty(first_name),
+        last_name = clean_empty(last_name),
+        gender = gender_enum,
+        date_of_birth = dob_value,
+        info = clean_empty(info)
     )
 
-    if avatar and hasattr(avatar, "filename") and avatar.filename.strip():
-        return profile, avatar
+    return schema, avatar if hasattr(avatar, "filename") else None
 
-    return profile, None

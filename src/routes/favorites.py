@@ -4,13 +4,13 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from Cinema.config.dependencies import get_current_user
-from Cinema.database import get_db
-from Cinema.models import User, Movie, Star, Director, Genre
-from Cinema.models.users import UserFavoriteMovie
-from Cinema.routes.movies import MovieSortByEnum, SortOrderEnum
-from Cinema.schemas.movies import MovieListResponseSchema, MovieListItemSchema
-from Cinema.schemas.users import MessageResponseSchema
+from config.dependencies import get_current_user
+from database import get_db
+from models import User, Movie, Star, Director, Genre
+from models.users import UserFavoriteMovie
+from routes.movies import MovieSortByEnum, SortOrderEnum
+from schemas.movies import MovieListResponseSchema, MovieListItemSchema
+from schemas.users import MessageResponseSchema
 
 router = APIRouter()
 

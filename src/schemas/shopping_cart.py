@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List
 from pydantic import BaseModel
-from Cinema.schemas.movies import GenreSchema
+from schemas.movies import GenreSchema
 
 
 class MovieInCartSchema(BaseModel):
