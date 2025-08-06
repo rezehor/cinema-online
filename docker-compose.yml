@@ -18,28 +18,28 @@ services:
       retries: 5
       start_period: 20s
 
-#  pgadmin:
-#    image: dpage/pgadmin4
-#    container_name: pgadmin_theater
-#    ports:
-#      - "3333:80"
-#    env_file:
-#      - .env
-#    depends_on:
-#      db:
-#        condition: service_healthy
-#    volumes:
-#      - pgadmin_theater_data:/var/lib/pgadmin
-#    networks:
-#      - theater_network
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_theater
+    ports:
+      - "3333:80"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - pgadmin_theater_data:/var/lib/pgadmin
+    networks:
+      - theater_network
 
-#  redis:
-#    image: redis:7
-#    container_name: online_cinema_redis
-#    ports:
-#      - "6379:6379"
-#    networks:
-#      - theater_network
+  redis:
+    image: redis:7
+    container_name: online_cinema_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - theater_network
 
   web:
     restart: always
@@ -147,41 +147,41 @@ services:
     networks:
       - theater_network
 
-#  celery:
-#    build: .
-#    container_name: online_cinema_celery
-#    command: celery -A tasks.celery_app worker --loglevel=info
-#    env_file:
-#      - .env
-#    volumes:
-#      - ./src:/usr/src/fastapi
-#    depends_on:
-#      - web
-#      - redis
-#      - db
-#    restart: on-failure
-#    networks:
-#      - theater_network
-#    environment:
-#      - PYTHONPATH=/usr/src/fastapi
-#
-#  beat:
-#    build: .
-#    container_name: online_cinema_beat
-#    command: celery -A tasks.celery_app beat --loglevel=info
-#    env_file:
-#      - .env
-#    volumes:
-#      - ./src:/usr/src/fastapi
-#    depends_on:
-#      - web
-#      - redis
-#      - db
-#    restart: on-failure
-#    networks:
-#      - theater_network
-#    environment:
-#      - PYTHONPATH=/usr/src/fastapi
+  celery:
+    build: .
+    container_name: online_cinema_celery
+    command: celery -A tasks.celery_app worker --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./src:/usr/src/fastapi
+    depends_on:
+      - web
+      - redis
+      - db
+    restart: on-failure
+    networks:
+      - theater_network
+    environment:
+      - PYTHONPATH=/usr/src/fastapi
+
+  beat:
+    build: .
+    container_name: online_cinema_beat
+    command: celery -A tasks.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./src:/usr/src/fastapi
+    depends_on:
+      - web
+      - redis
+      - db
+    restart: on-failure
+    networks:
+      - theater_network
+    environment:
+      - PYTHONPATH=/usr/src/fastapi
 
 volumes:
   postgres_theater_data:
