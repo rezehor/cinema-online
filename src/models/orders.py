@@ -22,7 +22,7 @@ class Order(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     status = Column(
-        Enum(OrderStatusEnum, name="statusenum"), nullable=False, default=OrderStatusEnum.PENDING
+        Enum(OrderStatusEnum, name="orderstatusenum"), nullable=False, default=OrderStatusEnum.PENDING
     )
     total_amount = Column(DECIMAL(10, 2), nullable=True)
 

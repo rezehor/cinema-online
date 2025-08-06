@@ -31,7 +31,9 @@ class Payment(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     status = Column(
-        Enum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.SUCCESSFUL
+        Enum(PaymentStatusEnum, name="paymentstatusenum"),
+        nullable=False,
+        default=PaymentStatusEnum.SUCCESSFUL
     )
     amount = Column(DECIMAL(10, 2), nullable=False)
     external_payment_id = Column(String, nullable=True)

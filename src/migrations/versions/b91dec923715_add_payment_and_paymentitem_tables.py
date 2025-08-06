@@ -26,7 +26,7 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('order_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.Column('status', sa.Enum('SUCCESSFUL', 'CANCELED', 'REFUNDED', name='statusenum'), nullable=False),
+    sa.Column('status', sa.Enum('SUCCESSFUL', 'CANCELED', 'REFUNDED', name='paymentstatusenum'), nullable=False),
     sa.Column('amount', sa.DECIMAL(precision=10, scale=2), nullable=False),
     sa.Column('external_payment_id', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['order_id'], ['orders.id'], ),
