@@ -33,13 +33,13 @@ services:
     networks:
       - theater_network
 
-  redis:
-    image: redis:7
-    container_name: online_cinema_redis
-    ports:
-      - "6379:6379"
-    networks:
-      - theater_network
+#  redis:
+#    image: redis:7
+#    container_name: online_cinema_redis
+#    ports:
+#      - "6379:6379"
+#    networks:
+#      - theater_network
 
   web:
     restart: always
@@ -147,41 +147,41 @@ services:
     networks:
       - theater_network
 
-  celery:
-    build: .
-    container_name: online_cinema_celery
-    command: celery -A tasks.celery_app worker --loglevel=info
-    env_file:
-      - .env
-    volumes:
-      - ./src:/usr/src/fastapi
-    depends_on:
-      - web
-      - redis
-      - db
-    restart: on-failure
-    networks:
-      - theater_network
-    environment:
-      - PYTHONPATH=/usr/src/fastapi
-
-  beat:
-    build: .
-    container_name: online_cinema_beat
-    command: celery -A tasks.celery_app beat --loglevel=info
-    env_file:
-      - .env
-    volumes:
-      - ./src:/usr/src/fastapi
-    depends_on:
-      - web
-      - redis
-      - db
-    restart: on-failure
-    networks:
-      - theater_network
-    environment:
-      - PYTHONPATH=/usr/src/fastapi
+#  celery:
+#    build: .
+#    container_name: online_cinema_celery
+#    command: celery -A tasks.celery_app worker --loglevel=info
+#    env_file:
+#      - .env
+#    volumes:
+#      - ./src:/usr/src/fastapi
+#    depends_on:
+#      - web
+#      - redis
+#      - db
+#    restart: on-failure
+#    networks:
+#      - theater_network
+#    environment:
+#      - PYTHONPATH=/usr/src/fastapi
+#
+#  beat:
+#    build: .
+#    container_name: online_cinema_beat
+#    command: celery -A tasks.celery_app beat --loglevel=info
+#    env_file:
+#      - .env
+#    volumes:
+#      - ./src:/usr/src/fastapi
+#    depends_on:
+#      - web
+#      - redis
+#      - db
+#    restart: on-failure
+#    networks:
+#      - theater_network
+#    environment:
+#      - PYTHONPATH=/usr/src/fastapi
 
 volumes:
   postgres_theater_data:
