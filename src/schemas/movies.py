@@ -1,0 +1,169 @@
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
+from pydantic import BaseModel, Field, field_validator
+
+from models.movies import LikeStatusEnum
+
+
+class GenreSchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class StarSchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class DirectorSchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class CertificationSchema(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class MovieBaseSchema(BaseModel):
+    name: str = Field(max_length=255)
+    year: int = Field(gt=1880)
+    time: int = Field(gt=0, lt=300)
+    imdb: float = Field(ge=0, le=10)
+    votes: int = Field(ge=0)
+    meta_score: float = Field(ge=0, le=100)
+    gross: float = Field(ge=0)
+    description: str = Field(min_length=1, max_length=1000)
+    price: Decimal = Field(ge=0)
+    is_available: bool = Field(default=True)
+
+    model_config = {"from_attributes": True}
+
+    @field_validator("year")
+    @classmethod
+    def validate_year(cls, value):
+        current_year = datetime.now().year
+        if value > current_year + 1:
+            raise ValueError(
+                f"The year in 'year' cannot be greater than {current_year + 1}."
+            )
+        return value
+
+
+class MovieDetailCreateSchema(MovieBaseSchema):
+    id: int
+    uuid: str
+    certification: CertificationSchema
+    genres: List[GenreSchema]
+    stars: List[StarSchema]
+    directors: List[DirectorSchema]
+
+    model_config = {"from_attributes": True}
+
+
+class MovieDetailResponseSchema(MovieDetailCreateSchema):
+    likes: int
+    dislikes: int
+    average_rating: float
+
+    model_config = {"from_attributes": True}
+
+
+class MovieListItemSchema(BaseModel):
+    id: int
+    name: str
+    year: int
+    time: int
+    imdb: float
+    votes: int
+    meta_score: float
+    description: str
+
+    model_config = {"from_attributes": True}
+
+
+class MovieListResponseSchema(BaseModel):
+    movies: List[MovieListItemSchema]
+    prev_page: Optional[str]
+    next_page: Optional[str]
+    total_pages: Optional[int]
+    total_items: Optional[int]
+
+    model_config = {"from_attributes": True}
+
+
+class MovieCreateSchema(MovieBaseSchema):
+    certification: str
+    genres: List[str]
+    stars: List[str]
+    directors: List[str]
+
+    model_config = {"from_attributes": True}
+
+    @field_validator("genres", "stars", "directors", mode="before")
+    @classmethod
+    def normalize_list_fields(cls, value: List[str]) -> List[str]:
+        return [item.title() for item in value]
+
+
+class MovieUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    year: Optional[int] = None
+    time: Optional[int] = None
+    imdb: Optional[float] = None
+    votes: Optional[int] = None
+    meta_score: Optional[float] = None
+    gross: Optional[float] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
+
+    model_config = {"from_attributes": True}
+
+
+class MovieLikeRequestSchema(BaseModel):
+    like_status: LikeStatusEnum
+
+
+class MovieLikeResponseSchema(BaseModel):
+    likes: int
+    dislikes: int
+    user_status: Optional[LikeStatusEnum] = None
+
+
+class GenreWithCountSchema(BaseModel):
+    id: int
+    name: str
+    movie_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class GenreListResponseSchema(BaseModel):
+    genres: list[GenreWithCountSchema]
+
+
+class MovieRatingRequestSchema(BaseModel):
+    rating: int = Field(ge=1, le=10)
+
+
+class MovieRatingResponseSchema(BaseModel):
+    movie_id: int
+    new_average_rating: float
+    user_rating: int
+
+
+class GenreCreateUpdateSchema(BaseModel):
+    name: str
+
+
+class StarCreateUpdateSchema(BaseModel):
+    name: str

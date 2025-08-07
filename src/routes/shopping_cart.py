@@ -1,0 +1,171 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload, joinedload
+from models import Cart, CartItem, Movie, OrderItem, Order, OrderStatusEnum
+from config.dependencies import get_db, get_current_user
+from models import User
+from schemas.shopping_cart import (
+    CartMoviesResponseSchema,
+    AdminAllCartsResponseSchema,
+    AdminUserCartSchema,
+)
+
+router = APIRouter()
+
+
+@router.post(
+    "/{movie_id}",
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a movie to the cart",
+    description="Adds a single movie to the user's cart. Returns an error if the movie has already been purchased or is already in the cart.",
+)
+async def add_movie_to_cart(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(select(Cart).where(Cart.user_id == current_user.id))
+    if not cart:
+        cart = Cart(user_id=current_user.id)
+        db.add(cart)
+        await db.flush()
+
+    purchased_stmt = (
+        select(OrderItem)
+        .join(Order)
+        .where(
+            OrderItem.movie_id == movie_id,
+            Order.user_id == current_user.id,
+            Order.status == OrderStatusEnum.PAID,
+        )
+    )
+    already_purchased = (await db.execute(purchased_stmt)).first()
+    if already_purchased:
+        raise HTTPException(
+            status_code=400, detail="You have already purchased this movie."
+        )
+
+    existing = await db.scalar(
+        select(CartItem).where(
+            CartItem.cart_id == cart.id, CartItem.movie_id == movie_id
+        )
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Movie already in cart.")
+
+    movie = await db.get(Movie, movie_id)
+    if not movie or not movie.is_available:
+        raise HTTPException(
+            status_code=404, detail="Movie not found or not available for purchase."
+        )
+
+    cart_item = CartItem(cart_id=cart.id, movie_id=movie_id)
+    db.add(cart_item)
+    await db.commit()
+    await db.refresh(cart_item)
+
+    return {"message": "Movie added to cart successfully."}
+
+
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a movie from the cart",
+    description="Removes a single movie from the user's shopping cart.",
+)
+async def clear_cart(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(select(Cart).where(Cart.user_id == current_user.id))
+    if cart:
+        await db.execute(delete(CartItem).where(CartItem.cart_id == cart.id))
+        await db.commit()
+
+
+@router.delete(
+    "/remove/{movie_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Clear the entire cart",
+    description="Removes all items from the currently authenticated user's shopping cart.",
+)
+async def remove_movie_from_cart(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(select(Cart).where(Cart.user_id == current_user.id))
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found.")
+
+    await db.execute(
+        delete(CartItem).where(
+            CartItem.cart_id == cart.id, CartItem.movie_id == movie_id
+        )
+    )
+    await db.commit()
+
+
+@router.get(
+    "/",
+    response_model=CartMoviesResponseSchema,
+    summary="Get the user's cart",
+    description="Retrieves a list of all movies currently in the authenticated user's shopping cart.",
+)
+async def get_movies_in_cart(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cart = await db.scalar(
+        select(Cart)
+        .options(
+            selectinload(Cart.cart_items)
+            .joinedload(CartItem.movie)
+            .joinedload(Movie.genres)
+        )
+        .where(Cart.user_id == current_user.id)
+    )
+
+    if not cart or not cart.cart_items:
+        return {"movies": []}
+
+    available_movies = [
+        item.movie for item in cart.cart_items if item.movie and item.movie.is_available
+    ]
+
+    return CartMoviesResponseSchema(movies=available_movies)
+
+
+@router.get(
+    "/admin/",
+    response_model=AdminAllCartsResponseSchema,
+    summary="View all user carts (Admin only)",
+    description="Allows an administrator to retrieve a list of all user carts and their contents.",
+)
+async def get_all_user_carts(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.group.name != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can see carts.")
+
+    stmt = select(Cart).options(
+        selectinload(Cart.cart_items).joinedload(CartItem.movie), joinedload(Cart.user)
+    )
+    result = await db.execute(stmt)
+    carts = result.scalars().all()
+
+    all_items = [
+        AdminUserCartSchema(
+            movie_id=item.movie.id,
+            name=item.movie.name,
+            price=item.movie.price,
+            user_id=cart.user_id,
+        )
+        for cart in carts
+        for item in cart.cart_items
+        if item.movie
+    ]
+
+    return AdminAllCartsResponseSchema(carts=all_items)
