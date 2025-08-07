@@ -1,7 +1,7 @@
 # Online Cinema API Service 🎬
 
 ## Description
-Online Cinema API Service is a web-based platform that allows users to watch,
+Online Cinema API Service is a web-based platform that allows users to browse,
 manage, and purchase movies via the internet. Built with FastAPI,
 this system provides a complete digital experience for movie lovers,
 with functionality for authentication, movie catalog, favorites, shopping cart,
